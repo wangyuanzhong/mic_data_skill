@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ product }} — 频响测量报告</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <h1>{{ product }} 频响测量报告</h1>
+
+  <section class="section section-keep" id="intro">
+    <h2>1. 整体介绍</h2>
+    {{ intro_html | safe }}
+  </section>
+
+  <section class="section section-keep" id="sensitivity">
+    <h2>2. 灵敏度</h2>
+    {{ sensitivity_html | safe }}
+  </section>
+
+  <section class="section section-flow" id="curves">
+    <h2>3. 曲线</h2>
+    {% if curves_notes_html %}
+    {{ curves_notes_html | safe }}
+    {% endif %}
+    <div class="figures">
+      {% for fig in figures %}
+      <div class="figure">
+        <img src="{{ fig.src }}" alt="{{ fig.caption }}" />
+        <div class="caption">{{ fig.caption }}</div>
+        {% if fig.note_html %}
+        {{ fig.note_html | safe }}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section section-keep" id="conclusion">
+    <h2>4. 结论</h2>
+    {{ conclusion_html | safe }}
+  </section>
+</body>
+</html>

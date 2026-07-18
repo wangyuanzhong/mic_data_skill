@@ -1,0 +1,20 @@
+{
+  "product": "",
+  "note": "",
+  "data_root": "",
+  "output_dir": "",
+  "unit": "",
+  "f_lo_hz": 100,
+  "f_hi_hz": 15000,
+  "process_xlsx": "process.xlsx",
+  "process_md": "process.md",
+  "sensitivity": {
+    "midline_mode": "mean",
+    "midline_db": null
+  },
+  "curves": {
+    "aux_count": 3,
+    "exclude": null,
+    "q_threshold": 10
+  }
+}
