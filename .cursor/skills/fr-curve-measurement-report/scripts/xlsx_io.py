@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Read process.xlsx sheets for report generation."""
+"""Read process.xlsx sheets for report generation (numerics quantized to 1 dp)."""
 from __future__ import annotations
 
 from openpyxl.worksheet.worksheet import Worksheet
+
+from quantize import q1
 
 
 def read_meta_kv(ws: Worksheet) -> dict[str, str]:
@@ -22,7 +24,7 @@ def read_meta_kv(ws: Worksheet) -> dict[str, str]:
 def read_wide_curves(
     ws: Worksheet,
 ) -> tuple[list[float], list[str], list[list[float | None]]]:
-    """Wide layout: A=freq, row1=sample names, body=amplitudes."""
+    """Wide layout: A=freq, row1=sample names, body=amplitudes. Values → 1 dp."""
     samples: list[str] = []
     for col in range(2, ws.max_column + 1):
         name = ws.cell(1, col).value
@@ -38,17 +40,19 @@ def read_wide_curves(
         f = ws.cell(row, 1).value
         if f is None or f == "":
             continue
-        freqs.append(float(f))
+        fq = q1(f)
+        assert fq is not None
+        freqs.append(fq)
         for i in range(len(samples)):
             raw = ws.cell(row, i + 2).value
             columns[i].append(
-                float(raw) if raw is not None and raw != "" else None
+                q1(raw) if raw is not None and raw != "" else None
             )
     return freqs, samples, columns
 
 
 def read_table_dicts(ws: Worksheet) -> list[dict[str, object]]:
-    """First row headers → list of row dicts."""
+    """First row headers → list of row dicts; numeric cells → 1 dp."""
     headers: list[str] = []
     for col in range(1, ws.max_column + 1):
         h = ws.cell(1, col).value
@@ -67,7 +71,10 @@ def read_table_dicts(ws: Worksheet) -> list[dict[str, object]]:
             v = ws.cell(r, c).value
             if v is not None and v != "":
                 empty = False
-            item[h] = v
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                item[h] = q1(v)
+            else:
+                item[h] = v
         if not empty:
             rows.append(item)
     return rows

@@ -142,3 +142,110 @@ def draw_envelope_box(ax: Axes, f_lo: float, f_hi: float, shell_db: float) -> No
         linewidths=2.4,
         zorder=5,
     )
+
+
+# Dense FR only: sparse / mid-density traces must stay untouched.
+SMOOTH_MIN_POINTS = 1000
+DISPLAY_TARGET_POINTS = 500
+
+
+def _light_ma(seg: list[float], window: int = 3) -> list[float]:
+    if window < 3 or len(seg) < window:
+        return seg
+    if window % 2 == 0:
+        window += 1
+    half = window // 2
+    padded = [seg[0]] * half + seg + [seg[-1]] * half
+    acc = sum(padded[:window])
+    out = [acc / window]
+    for i in range(1, len(seg)):
+        acc += padded[i + window - 1] - padded[i - 1]
+        out.append(acc / window)
+    return out
+
+
+def prepare_curve_for_display(
+    freqs: list[float],
+    values: list[float | None] | list[float],
+    *,
+    min_points: int = SMOOTH_MIN_POINTS,
+    target_points: int = DISPLAY_TARGET_POINTS,
+) -> tuple[list[float], list[float]]:
+    """
+    Display-only. Below min_points → identity. Dense → average into uniform
+    log-frequency bins (plus a tiny neighbor MA). Analysis sheets untouched.
+    """
+    ys = [float("nan") if v is None else float(v) for v in values]
+    pairs: list[tuple[float, float]] = []
+    for f, y in zip(freqs, ys):
+        try:
+            ff = float(f)
+            yy = float(y)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(ff) and math.isfinite(yy) and ff > 0:
+            pairs.append((ff, yy))
+    if len(pairs) < min_points:
+        return [float(f) for f in freqs], ys
+
+    pairs.sort(key=lambda p: p[0])
+    f0, f1 = pairs[0][0], pairs[-1][0]
+    if f1 <= f0:
+        return [float(f) for f in freqs], ys
+
+    n_bins = min(target_points, max(2, len(pairs) // 2))
+    if n_bins < 2 or n_bins >= len(pairs):
+        return [float(f) for f in freqs], ys
+
+    log0, log1 = math.log(f0), math.log(f1)
+    span = log1 - log0
+    bin_f: list[list[float]] = [[] for _ in range(n_bins)]
+    bin_y: list[list[float]] = [[] for _ in range(n_bins)]
+    for f, y in pairs:
+        t = (math.log(f) - log0) / span
+        i = min(n_bins - 1, max(0, int(t * n_bins)))
+        bin_f[i].append(f)
+        bin_y[i].append(y)
+
+    out_f: list[float] = []
+    out_y: list[float] = []
+    for bf, by in zip(bin_f, bin_y):
+        if not by:
+            continue
+        out_f.append(math.exp(sum(math.log(f) for f in bf) / len(bf)))
+        out_y.append(sum(by) / len(by))
+
+    # slight log-neighbor soften (window=3) — not a heavy wipe
+    if len(out_y) >= 5:
+        out_y = _light_ma(out_y, 3)
+    return out_f, out_y
+
+
+def smooth_series_for_display(
+    values: list[float | None] | list[float],
+    *,
+    min_points: int = SMOOTH_MIN_POINTS,
+    target_points: int = DISPLAY_TARGET_POINTS,
+) -> list[float]:
+    """Display-only: synthetic index freqs → log-bin path via prepare_*."""
+    ys = [float("nan") if v is None else float(v) for v in values]
+    idxs = [i for i, v in enumerate(ys) if math.isfinite(v)]
+    if len(idxs) < min_points:
+        return ys
+    # index-as-Hz is meaningless for log bins; keep light index block mean
+    block = max(1, (len(idxs) + target_points - 1) // target_points)
+    if block < 2:
+        return ys
+    out = ys[:]
+    for start in range(0, len(idxs), block):
+        group = idxs[start : start + block]
+        mean = sum(ys[i] for i in group) / len(group)
+        for i in group:
+            out[i] = mean
+    return out
+
+
+def clamp_sigma_ylim(ax: Axes) -> None:
+    """σ(f) is non-negative; never show a negative lower limit."""
+    _lo, hi = ax.get_ylim()
+    ax.set_ylim(bottom=0.0, top=max(float(hi), 0.0))

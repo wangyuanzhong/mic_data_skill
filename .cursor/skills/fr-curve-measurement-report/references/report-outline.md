@@ -1,46 +1,70 @@
-# 正式报告正文版式（Agent 填空）
+# 正式报告正文版式（白话填空说明）
 
-数字只从**产出目录**（与分析根同级的 `<产品>_时间/`）里的 `params.json` / `process.xlsx` 抄（见选标 `references/data-contract.md`）。大白话；勿堆编程词。
+数字与表格由组版脚本从产出目录 `params.json` / `process.xlsx` 生成。  
+字段/sheet 含义按需打开同目录 `data-contract-*.md`（总表见 [data-contract-report-quickref.md](data-contract-report-quickref.md)）。  
 
-分页由组版 CSS 约束：同大节尽量不跨页；图与图名不拆页。Agent 填 HTML 时不要拆散 `.section` / `.figure` 结构。  
-四段正文写入 `<产出目录>/report_sections/*.html`，经 `--*-file` 组版（见 SKILL 硬规则 7）；勿把 HTML 塞进 CLI。
+Agent **只**把白话当作 `compose_html.py` 的命令行参数传入；**不写** `report_sections/`（脚本落盘四个 `.txt`）。
 
-## 1. 整体介绍
+## 传参（对应 compose 参数）
 
-可做成短表，字段来自 params：
+| 参数 | 内容 | 可空 |
+|------|------|------|
+| `--intro-note` | 介绍一两句 | 可 |
+| `--sensitivity-note` | 金标为何选它等 | 可 |
+| `--curves-notes` | 曲线/读图短说明 | 可 |
+| `--conclusion-note` | 结论三四句 | 建议有 |
 
-| 项 | 来源 |
-|----|------|
-| 型号/产品 | `product` |
-| 说明 | `note` |
-| 幅度单位 | `unit` |
-| 分析频率范围 | `f_lo_hz`–`f_hi_hz` |
-| 灵敏度中线 | `sensitivity.midline_mode` / `midline_db` |
-| 曲线剔除 | `curves.exclude`（已确认名单） |
+纯白话；不要表、不要尖括号标签。
 
-两三句说明本报告基于本批测量选标结果即可。
+## 脚本生成（Agent 勿重复）
 
-## 2. 灵敏度
+1. **介绍字段表** + intro-note  
+2. **灵敏度：** note（若有）→ **灵敏度明细** → **灵敏度分档计数**  
+3. **曲线：** curves-notes + 固定顺序插图（奇异值图→归零叠图→包络分档→金标→辅标→一致性；一致性说明贴图下）  
+4. **结论：** conclusion-note  
 
-- 从表 `sensitivity` / `sensitivity_meta` 抄：中线方式、金标样机、分档明细表。
-- **只表不图。**
-- 用大白话写金标为何挑它、整体落在哪些档。
-- **分档计数表**由组版脚本自动追加：一列「幅度范围」写成绝对值 `A~B`（中线+相对档），一列样机数；不用 pin、不用相对中线刻度。Agent 勿手算、勿重复贴第二份计数表。
+## 自检（组版后、短结前；打开 `<out>/report.html` 用搜索核对）
 
-## 3. 曲线
+缺任一项 = 未完成：回到对应步骤重跑，不要只改措辞交差。
 
-按分析叙述写短说明，然后按下列顺序插图（组版脚本会自动按文件名排序插入；Agent 不必手改顺序）：
+### A. 文件是否落盘
 
-1. `奇异值与剔异前均值.png`
-2. `归零叠图.png`
-3. `包络分档_正负*.png`（有几张插几张）
-4. `金标绝对与偏差.png`
-5. `辅标偏差叠图.png`（若有）
-6. `辅标绝对叠图.png`（若有）
-7. `批量一致性sigma.png`（脚本写出 `批量一致性说明.txt`；**说明只出现在报告正文图下，不画进 PNG**；组版自动贴文）
+| 检查 | 通过标准 | 失败时 |
+|------|----------|--------|
+| PDF | 存在产出目录下 `report.pdf` 且体积明显大于空壳 | 重跑 `scripts/compose_pdf.py`（见本 Skill `SKILL.md` 步骤3.3） |
+| HTML | 存在产出目录下 `report.html` | 重跑 `scripts/compose_html.py`（见本 Skill `SKILL.md` 步骤3.2） |
+| 出图 | 产出目录下 `figures/` 非空 | 重跑本 Skill `SKILL.md` **步骤2**：`scripts/render_figures.py` |
+| note 落盘 | 组版后应有产出目录 `report_sections/intro_note.txt`、`sensitivity_note.txt`、`curves_notes.txt`、`conclusion_note.txt`（可为空内容） | 确认调用的是 `scripts/compose_html.py`（会写入上述四个文件） |
 
-每图下可写 1～2 句读图说明（可选，放在 `curves_notes_html`）。一致性频段评价以脚本说明为准。
+### B. 三张表（在 `report.html` 里搜标题/表头）
 
-## 4. 结论
+| 检查 | 通过标准 | 失败时 |
+|------|----------|--------|
+| 介绍字段表 | 能搜到「型号/产品」；表中产品名与 `params.json` 的 `product` 一致 | 查 params；重跑 compose |
+| 灵敏度明细 | 能搜到标题 **灵敏度明细**；表中有多行样机名，且能对上 sheet `sensitivity` 的样机 | 查 `sensitivity` sheet；重跑 compose；**禁止**手写补表 |
+| 灵敏度分档计数 | 能搜到标题 **灵敏度分档计数**；有「幅度范围」列和「样机数」列 | 同上 |
 
-三四句：灵敏度金标、曲线金标/辅标、奇异值处理、一致性观感。勿重复整表。
+### C. 曲线图（看 `figures/` 文件名 + HTML 是否引用）
+
+至少应出现（有则 HTML 的 `src` 里也能搜到文件名）：
+
+1. `奇异值与剔异前均值.png`  
+2. `归零叠图.png`  
+3. 至少一张 `包络分档_正负*.png`（张数随批次 δ，短结须报张数）  
+4. `金标绝对与偏差.png`  
+5. 若有辅标：`辅标偏差叠图.png`、`辅标绝对叠图.png`  
+6. `批量一致性sigma.png`；且图下有一致性说明文字（来自 `批量一致性说明.txt`，不是画进 PNG）
+
+顺序须为：奇异值 → 归零 → 包络分档（按 δ 从小到大）→ 金标 → 辅标（若有）→ 一致性。
+
+### D. 白话参数（若传了 `--*-note`）
+
+在 `report.html` 对应节能搜到你传入的原文关键词；若未传参，介绍节仍应有脚本默认短句，表与图不受影响。
+
+### E. 禁止项（出现则违规，须重做组版思路）
+
+- note / 正文里又贴了一整张「灵敏度明细」或「分档计数」手写表  
+- 自己新建/手改 `report_sections` 当报告节来写（应由脚本落盘）  
+- 为凑自检去改 `process.md` 或手算新数  
+
+短结时向用户汇报：PDF 路径、包络分档张数、上表 A–C 是否全部通过。

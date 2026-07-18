@@ -7,6 +7,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from utf8_boot import read_text
 from xlsx_io import read_meta_kv
 
 REQUIRED_SHEETS = (
@@ -34,7 +35,7 @@ def check_report_ready(output_dir: Path) -> None:
         raise SystemExit(f"缺少 process.xlsx：{xlsx_path}")
 
     try:
-        params = json.loads(params_path.read_text(encoding="utf-8"))
+        params = json.loads(read_text(params_path))
     except json.JSONDecodeError as e:
         raise SystemExit(f"params.json 无法解析：{e}") from e
     if not isinstance(params, dict):

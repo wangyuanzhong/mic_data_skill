@@ -34,7 +34,7 @@ def compute_sigma_curve(
         vals = [amps_by_sample[n][j] for n in names]
         mean = sum(vals) / len(vals)
         devs = [v - mean for v in vals]
-        sigma_db.append(round(_std_dev(devs), 4))
+        sigma_db.append(round(_std_dev(devs), 1))
 
     return {
         "freqs_hz": list(freqs),
@@ -95,7 +95,7 @@ def summarize_consistency_zh(sigma: dict) -> str:
 
     lines = [
         f"本批共 {n} 条曲线参与一致性；分析频段 {_format_hz_plain(f_lo)}–{_format_hz_plain(f_hi)} Hz。",
-        f"带内 σ 平均约 {mean_s:.2f} dB，最大约 {max_s:.2f} dB（约 {_format_hz_plain(max_f)} Hz）。",
+        f"带内 σ 平均约 {mean_s:.1f} dB，最大约 {max_s:.1f} dB（约 {_format_hz_plain(max_f)} Hz）。",
     ]
     if mean_s < 0.5:
         lines.append("整体一致性较好（平均 σ 偏低）。")
@@ -110,10 +110,10 @@ def summarize_consistency_zh(sigma: dict) -> str:
         good = by_good[:2]
         bad = by_bad[:2]
         good_txt = "、".join(
-            f"{_format_hz_plain(fc)} Hz 一带（σ≈{sig:.2f} dB）" for fc, sig, _ in good
+            f"{_format_hz_plain(fc)} Hz 一带（σ≈{sig:.1f} dB）" for fc, sig, _ in good
         )
         bad_txt = "、".join(
-            f"{_format_hz_plain(fc)} Hz 一带（σ≈{sig:.2f} dB）" for fc, sig, _ in bad
+            f"{_format_hz_plain(fc)} Hz 一带（σ≈{sig:.1f} dB）" for fc, sig, _ in bad
         )
         lines.append(f"相对较好的频段：{good_txt}。")
         lines.append(f"相对较差的频段：{bad_txt}。")

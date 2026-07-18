@@ -19,15 +19,18 @@ from gates import check_report_ready
 from plot_style import (
     REPORT_F_MAX_HZ,
     REPORT_F_MIN_HZ,
+    clamp_sigma_ylim,
     draw_analysis_band,
     draw_envelope_box,
+    prepare_curve_for_display,
     setup_log_freq_axis,
 )
+from utf8_boot import ensure_utf8_stdio, read_text, write_text
 from xlsx_io import read_meta_kv, read_table_dicts, read_wide_curves
 
 
 def _load_params(output_dir: Path) -> dict:
-    return json.loads((output_dir / "params.json").read_text(encoding="utf-8"))
+    return json.loads(read_text(output_dir / "params.json"))
 
 
 def _series_map(
@@ -65,11 +68,11 @@ def _plot_overlay(
 ) -> Path:
     fig, ax = plt.subplots(figsize=(10, 5.5))
     for name, amps in series.items():
-        ys = [float("nan") if v is None else float(v) for v in amps]
-        ax.plot(freqs, ys, linewidth=1.1, label=name)
+        xf, ys = prepare_curve_for_display(freqs, amps)
+        ax.plot(xf, ys, linewidth=1.1, label=name)
     if mean_curve is not None:
-        ys = [float("nan") if v is None else float(v) for v in mean_curve]
-        ax.plot(freqs, ys, color="black", linewidth=2.0, label=mean_label)
+        xf, ys = prepare_curve_for_display(freqs, mean_curve)
+        ax.plot(xf, ys, color="black", linewidth=2.0, label=mean_label)
     _apply_freq_axis(ax, freqs, f_lo, f_hi)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
@@ -187,8 +190,8 @@ def render_all_figures(
         for name in names:
             if name not in devs:
                 continue
-            ys = [float("nan") if v is None else float(v) for v in devs[name]]
-            ax.plot(freqs, ys, linewidth=1.1, label=name)
+            xf, ys = prepare_curve_for_display(freqs, devs[name])
+            ax.plot(xf, ys, linewidth=1.1, label=name)
         _apply_freq_axis(ax, freqs, f_lo, f_hi)
         draw_envelope_box(ax, f_lo, f_hi, float(shell))
         ax.set_ylabel("Deviation vs mean (dB)")
@@ -201,15 +204,17 @@ def render_all_figures(
     if golden and golden in leveled:
         p = figures_dir / "金标绝对与偏差.png"
         fig, ax = plt.subplots(figsize=(10, 5.5))
-        g_abs = [float("nan") if v is None else float(v) for v in leveled[golden]]
-        g_dev = []
+        g_abs_raw = leveled[golden]
+        g_dev_raw: list[float | None] = []
         for a, m in zip(leveled[golden], mean_after):
             if a is None or m is None:
-                g_dev.append(float("nan"))
+                g_dev_raw.append(None)
             else:
-                g_dev.append(float(a) - float(m))
-        ax.plot(freqs, g_abs, linewidth=1.6, label="金标绝对")
-        ax.plot(freqs, g_dev, linewidth=1.6, label="金标−均值")
+                g_dev_raw.append(float(a) - float(m))
+        xf_a, g_abs = prepare_curve_for_display(freqs, g_abs_raw)
+        xf_d, g_dev = prepare_curve_for_display(freqs, g_dev_raw)
+        ax.plot(xf_a, g_abs, linewidth=1.6, label="金标绝对")
+        ax.plot(xf_d, g_dev, linewidth=1.6, label="金标−均值")
         _apply_freq_axis(ax, freqs, f_lo, f_hi)
         ax.set_ylabel(f"dB ({unit} / deviation)")
         ax.set_title(f"金标绝对与偏差（{golden}）")
@@ -256,7 +261,7 @@ def render_all_figures(
         sigma = compute_sigma_curve(freqs, amps_f, f_lo, f_hi)
         note = summarize_consistency_zh(sigma)
         note_path = figures_dir / "批量一致性说明.txt"
-        note_path.write_text(note + "\n", encoding="utf-8")
+        write_text(note_path, note + "\n")
 
         p = figures_dir / "批量一致性sigma.png"
         fig, ax = plt.subplots(figsize=(10, 5.2))
@@ -264,12 +269,13 @@ def render_all_figures(
         for f, s in zip(sigma["freqs_hz"], sigma["sigma_db"]):
             if s is None:
                 if xs:
+                    xf, ys_s = prepare_curve_for_display(xs, ys)
                     ax.fill_between(
-                        xs, ys, 0, color=(120 / 255, 200 / 255, 240 / 255, 0.18)
+                        xf, ys_s, 0, color=(120 / 255, 200 / 255, 240 / 255, 0.18)
                     )
                     ax.plot(
-                        xs,
-                        ys,
+                        xf,
+                        ys_s,
                         color=(70 / 255, 150 / 255, 210 / 255, 0.92),
                         linewidth=1.8,
                     )
@@ -278,13 +284,15 @@ def render_all_figures(
             xs.append(f)
             ys.append(s)
         if xs:
-            ax.fill_between(xs, ys, 0, color=(120 / 255, 200 / 255, 240 / 255, 0.18))
+            xf, ys_s = prepare_curve_for_display(xs, ys)
+            ax.fill_between(xf, ys_s, 0, color=(120 / 255, 200 / 255, 240 / 255, 0.18))
             ax.plot(
-                xs, ys, color=(70 / 255, 150 / 255, 210 / 255, 0.92), linewidth=1.8
+                xf, ys_s, color=(70 / 255, 150 / 255, 210 / 255, 0.92), linewidth=1.8
             )
         _apply_freq_axis(ax, freqs, f_lo, f_hi)
         ax.set_ylabel("σ (dB)")
         ax.set_title("批量一致性 σ(f)")
+        clamp_sigma_ylim(ax)
         _save_fig(fig, p)
         out_paths.append(p)
         out_paths.append(note_path)
@@ -294,11 +302,12 @@ def render_all_figures(
 
 
 def main() -> None:
+    ensure_utf8_stdio()
     p = argparse.ArgumentParser(description="Render FR measurement report figures")
     p.add_argument("--params", required=True, help="Path to params.json")
     args = p.parse_args()
     params_path = Path(args.params)
-    params = json.loads(params_path.read_text(encoding="utf-8"))
+    params = json.loads(read_text(params_path))
     output_dir = Path(params.get("output_dir") or params_path.parent)
     paths = render_all_figures(output_dir)
     print(f"OK wrote {len(paths)} figures -> {output_dir / 'figures'}")

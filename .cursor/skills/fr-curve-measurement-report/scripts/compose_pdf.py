@@ -1,9 +1,22 @@
 # -*- coding: utf-8 -*-
-"""HTML → PDF via Playwright Chromium."""
+"""HTML → PDF via Playwright Chromium (UTF-8 safe for Chinese paths)."""
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+
+from utf8_boot import ensure_utf8_stdio
+
+
+def load_report_html(page, html_path: Path) -> None:
+    """Navigate so relative figure paths resolve (Chinese dirs/names OK on Windows)."""
+    html_path = Path(html_path).resolve()
+    if not html_path.is_file():
+        raise FileNotFoundError(html_path)
+    # Use goto(file URI). set_content + <base href="file://…"> is blocked by Chromium
+    # for local subresources (images naturalWidth=0). Path.as_uri() percent-encodes
+    # Chinese / spaces / parentheses correctly.
+    page.goto(html_path.as_uri(), wait_until="networkidle")
 
 
 def html_to_pdf(html_path: Path, pdf_path: Path | None = None) -> Path:
@@ -14,11 +27,10 @@ def html_to_pdf(html_path: Path, pdf_path: Path | None = None) -> Path:
 
     from playwright.sync_api import sync_playwright
 
-    uri = html_path.as_uri()
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-        page.goto(uri, wait_until="networkidle")
+        load_report_html(page, html_path)
         page.pdf(
             path=str(pdf_path),
             format="A4",
@@ -30,6 +42,7 @@ def html_to_pdf(html_path: Path, pdf_path: Path | None = None) -> Path:
 
 
 def main() -> None:
+    ensure_utf8_stdio()
     p = argparse.ArgumentParser(description="Render report.html to PDF")
     p.add_argument("--html", required=True)
     p.add_argument("--pdf", default=None)

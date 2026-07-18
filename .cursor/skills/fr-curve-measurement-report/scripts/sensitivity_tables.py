@@ -7,17 +7,20 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from quantize import q1
 from xlsx_io import read_meta_kv, read_table_dicts
 
 
 def _fmt_db(v: object) -> str:
     try:
-        x = float(v)  # type: ignore[arg-type]
+        x = q1(v)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return str(v)
+    if x is None:
+        return ""
     if abs(x - round(x)) < 1e-9:
         return str(int(round(x)))
-    return f"{x:.2f}".rstrip("0").rstrip(".")
+    return f"{x:.1f}"
 
 
 def _midline_from_rows(rows: list[dict], meta: dict[str, str]) -> float | None:
@@ -50,28 +53,75 @@ def count_sensitivity_bins_absolute(
             continue
         abs_lo = midline + float(lo)
         abs_hi = midline + float(hi)
-        counter[(abs_lo, abs_hi)] += 1
+        counter[(q1(abs_lo) or abs_lo, q1(abs_hi) or abs_hi)] += 1
     return [
         (lo, hi, n)
         for (lo, hi), n in sorted(counter.items(), key=lambda t: t[0][0])
     ]
 
 
-def sensitivity_bin_count_html(output_dir: Path) -> str:
-    """HTML table: 幅度范围 (A~B) / 样机数 — absolute dB, not relative to midline."""
+def _load_sensitivity(output_dir: Path) -> tuple[list[dict], dict[str, str]]:
     xlsx = Path(output_dir) / "process.xlsx"
     if not xlsx.is_file():
-        return ""
+        return [], {}
     wb = load_workbook(xlsx, data_only=True)
     try:
         if "sensitivity" not in wb.sheetnames:
-            return ""
+            return [], {}
         rows = read_table_dicts(wb["sensitivity"])
         meta: dict[str, str] = {}
         if "sensitivity_meta" in wb.sheetnames:
             meta = read_meta_kv(wb["sensitivity_meta"])
+        return rows, meta
     finally:
         wb.close()
+
+
+def sensitivity_detail_html(output_dir: Path) -> str:
+    """Per-sample sensitivity table from process.xlsx (Agent must not hand-write this)."""
+    rows, meta = _load_sensitivity(output_dir)
+    if not rows:
+        return ""
+    unit = ""
+    if rows[0].get("unit"):
+        unit = str(rows[0]["unit"])
+    elif meta.get("unit"):
+        unit = str(meta["unit"])
+    level_h = f"1000Hz ({unit})" if unit else "1000Hz"
+    lines = [
+        "<h3>灵敏度明细</h3>",
+        "<table>",
+        "<thead><tr>"
+        "<th>样机</th>"
+        f"<th>{level_h}</th>"
+        "<th>相对中线 (dB)</th>"
+        "<th>档位</th>"
+        "<th>角色</th>"
+        "</tr></thead>",
+        "<tbody>",
+    ]
+    for r in rows:
+        role = r.get("role") or "—"
+        if role == "golden":
+            role = "金标"
+        lines.append(
+            "<tr>"
+            f"<td>{r.get('sample', '')}</td>"
+            f"<td>{_fmt_db(r.get('level_1000'))}</td>"
+            f"<td>{_fmt_db(r.get('delta_to_mid'))}</td>"
+            f"<td>{r.get('bin', '')}</td>"
+            f"<td>{role}</td>"
+            "</tr>"
+        )
+    lines.extend(["</tbody>", "</table>"])
+    return "\n".join(lines)
+
+
+def sensitivity_bin_count_html(output_dir: Path) -> str:
+    """HTML table: 幅度范围 (A~B) / 样机数 — absolute dB, not relative to midline."""
+    rows, meta = _load_sensitivity(output_dir)
+    if not rows:
+        return ""
     midline = _midline_from_rows(rows, meta)
     if midline is None:
         return ""
@@ -79,7 +129,7 @@ def sensitivity_bin_count_html(output_dir: Path) -> str:
     if not bins:
         return ""
     unit = ""
-    if rows and rows[0].get("unit"):
+    if rows[0].get("unit"):
         unit = f" ({rows[0]['unit']})"
     elif meta.get("unit"):
         unit = f" ({meta['unit']})"

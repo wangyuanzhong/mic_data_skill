@@ -2,6 +2,7 @@
 from sensitivity_tables import (
     count_sensitivity_bins_absolute,
     sensitivity_bin_count_html,
+    sensitivity_detail_html,
 )
 
 
@@ -23,5 +24,17 @@ def test_count_html_absolute_single_cell(synthetic_ready_dir):
     assert "~" in html
     assert "幅度下限" not in html
     assert "pin" not in html.lower()
-    # fixture midline -39.85, bin 0~0.5 → absolute about -39.85~-39.35
-    assert "-39.85~-39.35" in html or "-39.85~" in html
+    # fixture midline -39.85 → q1 -39.9; bin 0~0.5 → absolute -39.9~-39.4
+    assert "-39.9~-39.4" in html
+
+
+def test_detail_html_lists_each_sample(synthetic_ready_dir):
+    html = sensitivity_detail_html(synthetic_ready_dir)
+    assert "灵敏度明细" in html
+    assert "<table>" in html
+    assert "S1" in html
+    assert "S2" in html
+    assert "S3" in html
+    assert "S4" in html
+    assert "1000Hz" in html or "level" in html.lower() or "dBV" in html
+    assert "golden" in html or "金标" in html
