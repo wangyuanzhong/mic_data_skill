@@ -47,3 +47,11 @@ def test_render_freq_bins_section(tmp_path):
     # both detail and summary tables rendered
     assert "分组" in text
     assert "每组数量" in text
+
+
+def test_skip_when_empty(tmp_path):
+    out = _prep(tmp_path, focus_freqs=[])
+
+    html_path = compose_report_html(out)
+    text = html_path.read_text(encoding="utf-8")
+    assert "频点差值分档" not in text
