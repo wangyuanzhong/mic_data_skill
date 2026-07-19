@@ -155,7 +155,7 @@ def test_invalid_focus_freqs_exit2(tmp_path):
     angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
 
-    bad_values = [[-1000], [0], ["x"], [1000, 1000]]  # negative, zero, non-numeric, dup
+    bad_values = [[-1000], [0], ["x"], [1000, 1000], 1000, "1000"]  # negative, zero, non-numeric, dup, non-list (bare number), non-list (string)
     for bv in bad_values:
         (out / "params.json").write_text(
             json.dumps({

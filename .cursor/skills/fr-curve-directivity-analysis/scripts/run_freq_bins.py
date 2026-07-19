@@ -94,7 +94,7 @@ def _verify_sheets(
 def _validate_focus_freqs(ff: list) -> list[float] | None:
     if not isinstance(ff, list):
         print("focus_freqs must be a list", file=sys.stderr)
-        return []
+        return None
     seen: set[float] = set()
     out: list[float] = []
     for v in ff:
