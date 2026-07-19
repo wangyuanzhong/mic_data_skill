@@ -79,3 +79,51 @@ def test_two_clear_groups_k2(tmp_path):
     ws_s = wb["cluster_suggest_90"]
     ids = {int(ws_s.cell(2, 2).value), int(ws_s.cell(3, 2).value)}
     assert ids == {1, 2}
+
+
+def test_final_not_overwritten(tmp_path):
+    axis = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    ang = [[2.0, 3.0, 4.0], [2.0, 3.0, 4.0]]
+    out = _prep(tmp_path, axis_cols=axis, angle_cols=ang)
+    run_cluster_main(["--params", str(out / "params.json")])
+    wb = load_workbook(out / "process.xlsx")
+    ws = wb["cluster_final_90"]
+    ws.cell(2, 3).value = "自定义类"
+    wb.save(out / "process.xlsx")
+
+    run_cluster_main(["--params", str(out / "params.json")])
+    wb = load_workbook(out / "process.xlsx")
+    assert wb["cluster_final_90"].cell(2, 3).value == "自定义类"
+
+
+def test_missing_delta_exit2(tmp_path):
+    out = tmp_path
+    write_params(
+        out / "params.json",
+        output_dir=out,
+        angles=["axis", "90"],
+        axial_angle="axis",
+        sample_count=2,
+        extra={"cluster_k_max": 5},
+    )
+    build_angle_workbook(
+        out / "process.xlsx",
+        angles=["axis", "90"],
+        samples=["S01", "S02"],
+        freqs=[100.0, 1000.0],
+        values_by_angle={
+            "axis": [[1.0, 2.0], [1.0, 2.0]],
+            "90": [[2.0, 3.0], [3.0, 4.0]],
+        },
+    )
+    # no run_deltas
+    rc = run_cluster_main(["--params", str(out / "params.json")])
+    assert rc == 2
+
+
+def test_invalid_cluster_k_max_exit2(tmp_path):
+    axis = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    ang = [[2.0, 3.0, 4.0], [2.0, 3.0, 4.0]]
+    out = _prep(tmp_path, axis_cols=axis, angle_cols=ang, extra={"cluster_k_max": 0})
+    rc = run_cluster_main(["--params", str(out / "params.json")])
+    assert rc == 2
