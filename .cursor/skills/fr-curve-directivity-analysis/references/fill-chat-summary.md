@@ -1,6 +1,6 @@
-# 步骤4：聊天短结（C 指向性）
+# 步骤3.8 / 步骤4.5：聊天短结（C 指向性）
 
-差值与一致性 sheet 已由脚本写入、报告已出后，在聊天贴短结。
+差值、一致性、走势 sheet 已由脚本写入、分类与峰谷已勾选、报告已出后，在聊天贴短结。
 
 ## 步骤0 intake：关注频点填法
 
@@ -15,9 +15,11 @@
 - 产出目录绝对路径
 - 角度数（含轴向）、样机数
 - 各非轴向角度的 `max_std_db` / `mean_std_db`（来自 `consistency_summary`）
+- **各非轴向角度的分类类数**（来自 `cluster_final_<tag>` 中不同 `cluster_id` 计数，不含 `unclustered`）
+- **各非轴向角度勾选的峰谷数**（`peak_candidates_<tag>` 中 `selected=yes` 的行数，分 peak/valley 可一并报）
 - 报告 `report.pdf` 绝对路径
 - `figures/` 中差值叠图张数
-- 自检是否全部通过
+- 自检是否全部通过（含 J/K 走势项）
 
 ## 禁止
 
