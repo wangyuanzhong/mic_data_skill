@@ -145,3 +145,27 @@ def test_idempotent(tmp_path):
     assert sorted(freq_bins_sheets) == ["freq_bins_90", "freq_bins_summary_90"]
     ws_d = wb["freq_bins_90"]
     assert ws_d.max_row == 1 + 2  # not doubled
+
+
+import json
+
+
+def test_invalid_focus_freqs_exit2(tmp_path):
+    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
+
+    bad_values = [[-1000], [0], ["x"], [1000, 1000]]  # negative, zero, non-numeric, dup
+    for bv in bad_values:
+        (out / "params.json").write_text(
+            json.dumps({
+                "product": "T", "note": "", "data_root": str(out), "output_dir": str(out),
+                "unit": "dB", "f_lo_hz": 250, "f_hi_hz": 20000,
+                "process_xlsx": "process.xlsx", "process_md": "process.md",
+                "angles": ["axis", "90"], "axial_angle": "axis", "sample_count": 2,
+                "envelope": None, "focus_freqs": bv,
+            }, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        rc = run_freq_bins_main(["--params", str(out / "params.json")])
+        assert rc == 2, f"expected exit 2 for focus_freqs={bv}"

@@ -23,6 +23,28 @@ from params_io import load_params, resolve_under_output
 from utf8_boot import ensure_utf8_stdio
 
 
+def _validate_focus_freqs(ff: list) -> list[float]:
+    if not isinstance(ff, list):
+        print("focus_freqs must be a list", file=sys.stderr)
+        return []
+    seen: set[float] = set()
+    out: list[float] = []
+    for v in ff:
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            print(f"focus_freqs element not numeric: {v!r}", file=sys.stderr)
+            return None  # type: ignore[return-value]
+        fv = float(v)
+        if fv <= 0:
+            print(f"focus_freqs must be > 0: {fv}", file=sys.stderr)
+            return None  # type: ignore[return-value]
+        if fv in seen:
+            print(f"focus_freqs duplicate value: {fv}", file=sys.stderr)
+            return None  # type: ignore[return-value]
+        seen.add(fv)
+        out.append(fv)
+    return out
+
+
 def _format_hz(ff: float) -> str:
     if ff == int(ff):
         return str(int(ff))
@@ -73,7 +95,14 @@ def main(argv: list[str] | None = None) -> int:
     axial = params.get("axial_angle") or ""
     f_lo = float(params.get("f_lo_hz") or 0)
     f_hi = float(params.get("f_hi_hz") or 0)
-    focus_freqs = [float(v) for v in (params.get("focus_freqs") or [])]
+    raw_ff = params.get("focus_freqs")
+    if raw_ff is None:
+        focus_freqs = []
+    else:
+        validated = _validate_focus_freqs(raw_ff)
+        if validated is None:
+            return 2
+        focus_freqs = validated
 
     if not angles:
         print("params.angles is empty", file=sys.stderr)
