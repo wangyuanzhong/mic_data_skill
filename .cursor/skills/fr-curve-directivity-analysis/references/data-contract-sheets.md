@@ -1,6 +1,6 @@
 # 数据合同：process.xlsx sheets（C 指向性）
 
-本文件属指向性 Skill `fr-curve-directivity-analysis``。  
+本文件属指向性 Skill `fr-curve-directivity-analysis`。
 由 Agent（步骤2 角度宽表）与脚本（步骤3 `delta_*` / `freq_bins_*` / `consistency_*`）写入；报告脚本只读。  
 **改 sheet/列时维护者须同步改本文与脚本。**
 
