@@ -167,9 +167,11 @@ C `params.template.json` 新增（默认均可被用户主动覆盖；不新增 
 2. 样机对欧氏距离：仅对两端皆非 None 的频点求和；有效点数为 0 → 该机 `unclustered`，不进距离矩阵核心（或矩阵中与其相关记空并 warning）。  
 3. 写 `cluster_dist_<tag>`。  
 4. k ∈ `{1 … min(cluster_k_max, n_clusterable)}`：  
-   - `k=1`：全体一类；silhouette = `N/A`  
-   - `k≥2`：层次聚类 **average linkage**，在预计算欧氏距离矩阵上切 k 类；算平均轮廓系数  
-   - 取 silhouette 最大的 k；并列取更小 k  
+   - `k=1`：全体一类；silhouette = `N/A`（不参与 argmax）  
+   - `k≥2`：层次聚类 **average linkage**，在预计算欧氏距离矩阵上切 k 类；算平均轮廓系数（单样本类内距离 a 约定为 0，以便 n=2 的两类可得到正轮廓）  
+   - 在 k≥2 的数值 silhouette 中取最大；并列取更小 k  
+   - **若所有 k≥2 的 silhouette 均 ≤ 0**（典型：曲线几乎重合仍被切成多类），则回退 `chosen_k=1`  
+
 5. 写 `cluster_suggest_<tag>` + `cluster_meta_<tag>`。  
 6. 若无 `cluster_final_<tag>`：复制 suggest（`cluster_name` 先空或 `类{id}`）；若已有 final：**不覆盖**。  
 7. L2 自检失败 → 删除本步写入的 dist/suggest/meta（及本次新建的 final，若是本跑创建的）→ exit 3；通过则打印 `VERIFICATION OK: ...`。
