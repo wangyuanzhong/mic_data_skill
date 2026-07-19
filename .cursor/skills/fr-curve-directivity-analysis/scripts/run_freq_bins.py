@@ -23,7 +23,7 @@ from params_io import load_params, resolve_under_output
 from utf8_boot import ensure_utf8_stdio
 
 
-def _validate_focus_freqs(ff: list) -> list[float]:
+def _validate_focus_freqs(ff: list) -> list[float] | None:
     if not isinstance(ff, list):
         print("focus_freqs must be a list", file=sys.stderr)
         return []
@@ -32,14 +32,14 @@ def _validate_focus_freqs(ff: list) -> list[float]:
     for v in ff:
         if isinstance(v, bool) or not isinstance(v, (int, float)):
             print(f"focus_freqs element not numeric: {v!r}", file=sys.stderr)
-            return None  # type: ignore[return-value]
+            return None
         fv = float(v)
         if fv <= 0:
             print(f"focus_freqs must be > 0: {fv}", file=sys.stderr)
-            return None  # type: ignore[return-value]
+            return None
         if fv in seen:
             print(f"focus_freqs duplicate value: {fv}", file=sys.stderr)
-            return None  # type: ignore[return-value]
+            return None
         seen.add(fv)
         out.append(fv)
     return out
