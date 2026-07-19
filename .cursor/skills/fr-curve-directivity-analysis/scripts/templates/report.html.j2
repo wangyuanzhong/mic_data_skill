@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ product }} — 指向性分析报告</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <h1>{{ product }} 指向性分析报告</h1>
+
+  <section class="section section-keep" id="intro">
+    <h2>1. 整体介绍</h2>
+    {{ intro_html | safe }}
+  </section>
+
+  <section class="section section-flow" id="deltas">
+    <h2>2. 差值分析</h2>
+    {% if deltas_notes_html %}
+    {{ deltas_notes_html | safe }}
+    {% endif %}
+    <div class="figures">
+      {% for fig in delta_figures %}
+      <div class="figure">
+        <img src="{{ fig.src }}" alt="{{ fig.caption }}" />
+        <div class="caption">{{ fig.caption }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if freq_bins_html %}
+  <section class="section section-keep" id="freq-bins">
+    <h2>3. 频点差值分档</h2>
+    {{ freq_bins_html | safe }}
+  </section>
+  {% endif %}
+
+  <section class="section section-keep" id="consistency">
+    <h2>4. 一致性分析</h2>
+    {% if consistency_notes_html %}
+    {{ consistency_notes_html | safe }}
+    {% endif %}
+    {{ consistency_summary_html | safe }}
+    <div class="figures">
+      {% for fig in consistency_figures %}
+      <div class="figure">
+        <img src="{{ fig.src }}" alt="{{ fig.caption }}" />
+        <div class="caption">{{ fig.caption }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section section-keep" id="conclusion">
+    <h2>5. 结论</h2>
+    {{ conclusion_html | safe }}
+  </section>
+</body>
+</html>
