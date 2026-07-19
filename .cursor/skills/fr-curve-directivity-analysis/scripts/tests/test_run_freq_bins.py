@@ -80,3 +80,16 @@ def test_none_delta(tmp_path):
         if v is not None:
             total += int(v)
     assert total == 1
+
+
+def test_empty_focus_freqs(tmp_path):
+    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[])
+
+    rc = run_freq_bins_main(["--params", str(out / "params.json")])
+    assert rc == 0
+
+    wb = load_workbook(out / "process.xlsx")
+    assert "freq_bins_90" not in wb.sheetnames
+    assert "freq_bins_summary_90" not in wb.sheetnames
