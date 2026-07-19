@@ -199,6 +199,77 @@ def _write_final(
         ws.append([name, cid, cname])
 
 
+def _verify_cluster_sheets(wb, tag: str, samples: list[str]) -> None:
+    """Raise ValueError on L2 check failure.
+
+    Checks: dist symmetric + diag≈0; suggest samples complete;
+    meta exactly one chosen=yes; chosen k in range.
+    """
+    dist_name = f"cluster_dist_{tag}"
+    suggest_name = f"cluster_suggest_{tag}"
+    meta_name = f"cluster_meta_{tag}"
+
+    for name in (dist_name, suggest_name, meta_name):
+        if name not in wb.sheetnames:
+            raise ValueError(f"missing sheet {name}")
+
+    n = len(samples)
+    ws_d = wb[dist_name]
+    # Header row: blank + sample names; body n x n starting at (2,2)
+    for i in range(n):
+        for j in range(n):
+            vij = ws_d.cell(i + 2, j + 2).value
+            vji = ws_d.cell(j + 2, i + 2).value
+            if i == j:
+                if vij is not None and abs(float(vij)) > 1e-9:
+                    raise ValueError(f"{dist_name} diag[{i}]={vij!r} not ≈0")
+            else:
+                if (vij is None) != (vji is None):
+                    raise ValueError(
+                        f"{dist_name} asymmetry None at ({i},{j}): {vij!r} vs {vji!r}"
+                    )
+                if vij is not None and vji is not None:
+                    if abs(float(vij) - float(vji)) > 1e-9:
+                        raise ValueError(
+                            f"{dist_name} not symmetric at ({i},{j}): "
+                            f"{vij!r} vs {vji!r}"
+                        )
+
+    ws_s = wb[suggest_name]
+    found: list[str] = []
+    for r in range(2, ws_s.max_row + 1):
+        v = ws_s.cell(r, 1).value
+        if v is not None:
+            found.append(str(v).strip())
+    expected = [str(s).strip() for s in samples]
+    if sorted(found) != sorted(expected):
+        raise ValueError(
+            f"{suggest_name} samples {found!r} != expected {expected!r}"
+        )
+
+    ws_m = wb[meta_name]
+    chosen_rows: list[int] = []
+    k_values: list[int] = []
+    for r in range(2, ws_m.max_row + 1):
+        kv = ws_m.cell(r, 1).value
+        if kv is not None:
+            k_values.append(int(kv))
+        if str(ws_m.cell(r, 3).value).strip() == "yes":
+            chosen_rows.append(r)
+    if len(chosen_rows) != 1:
+        raise ValueError(
+            f"{meta_name} expected exactly 1 chosen=yes, got {len(chosen_rows)}"
+        )
+    chosen_k = int(ws_m.cell(chosen_rows[0], 1).value)
+    if not k_values:
+        raise ValueError(f"{meta_name} has no k rows")
+    k_lo, k_hi = min(k_values), max(k_values)
+    if not (k_lo <= chosen_k <= k_hi):
+        raise ValueError(
+            f"{meta_name} chosen k={chosen_k} out of range [{k_lo},{k_hi}]"
+        )
+
+
 def _cluster_angle(
     wb,
     *,
@@ -210,7 +281,7 @@ def _cluster_angle(
     f_hi: float,
     k_max: int,
 ) -> int:
-    """Write cluster sheets for one angle. Returns 0 or 2."""
+    """Write cluster sheets for one angle. Returns 0, 2, or 3."""
     band_cols = _band_columns(freqs, cols, f_lo, f_hi)
     clusterable = [_is_clusterable(c) for c in band_cols]
     n_clusterable = sum(1 for c in clusterable if c)
@@ -271,8 +342,21 @@ def _cluster_angle(
     )
     _write_meta(_replace_sheet(wb, meta_name), meta_rows, chosen_k)
 
+    created_final = False
     if final_name not in wb.sheetnames:
         _write_final(_replace_sheet(wb, final_name), samples, cluster_ids)
+        created_final = True
+
+    try:
+        _verify_cluster_sheets(wb, tag, samples)
+    except ValueError as e:
+        for name in (dist_name, suggest_name, meta_name):
+            if name in wb.sheetnames:
+                del wb[name]
+        if created_final and final_name in wb.sheetnames:
+            del wb[final_name]
+        print(f"VERIFICATION FAIL for {tag!r}: {e}", file=sys.stderr)
+        return 3
 
     return 0
 
@@ -335,10 +419,16 @@ def main(argv: list[str] | None = None) -> int:
             k_max=k_max,
         )
         if rc != 0:
+            if rc == 3:
+                wb.save(xlsx_path)
             return rc
         written.append(tag)
 
     wb.save(xlsx_path)
+    print(
+        f"VERIFICATION OK: {len(written)} angles, "
+        f"cluster_dist/suggest/meta written"
+    )
     print(f"run_cluster: wrote sheets for {len(written)} angles: {', '.join(written)}")
     return 0
 

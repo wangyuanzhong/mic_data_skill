@@ -127,3 +127,28 @@ def test_invalid_cluster_k_max_exit2(tmp_path):
     out = _prep(tmp_path, axis_cols=axis, angle_cols=ang, extra={"cluster_k_max": 0})
     rc = run_cluster_main(["--params", str(out / "params.json")])
     assert rc == 2
+
+
+def test_cluster_verification_pass(tmp_path, capsys):
+    axis = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    ang = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis, angle_cols=ang)
+    rc = run_cluster_main(["--params", str(out / "params.json")])
+    assert rc == 0
+    assert "VERIFICATION OK" in capsys.readouterr().out
+
+
+def test_cluster_verification_fail_exit3(tmp_path, monkeypatch):
+    axis = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    ang = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis, angle_cols=ang)
+    import run_cluster
+    def bad_verify(*a, **k):
+        raise ValueError("sabotage")
+    monkeypatch.setattr(run_cluster, "_verify_cluster_sheets", bad_verify)
+    rc = run_cluster_main(["--params", str(out / "params.json")])
+    assert rc == 3
+    wb = load_workbook(out / "process.xlsx")
+    assert "cluster_dist_90" not in wb.sheetnames
+    assert "cluster_suggest_90" not in wb.sheetnames
+    assert "cluster_meta_90" not in wb.sheetnames
