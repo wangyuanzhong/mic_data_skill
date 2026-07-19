@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -21,6 +22,73 @@ from openpyxl.worksheet.worksheet import Worksheet
 from angle_sheets import normalize_angle_tag, read_angle_sheet
 from params_io import load_params, resolve_under_output
 from utf8_boot import ensure_utf8_stdio
+
+
+_BIN_LABEL_RE = re.compile(r"^-?\d+~-?\d+$")
+
+
+def _verify_sheets(
+    wb,
+    angle: str,
+    samples: list[str],
+    active_freqs: list[float],
+) -> None:
+    """Raise ValueError on any check failure. Spec §6.1 checks 1-11."""
+    tag = normalize_angle_tag(angle)
+    detail_name = f"freq_bins_{tag}"
+    summary_name = f"freq_bins_summary_{tag}"
+
+    if detail_name not in wb.sheetnames:
+        raise ValueError(f"missing sheet {detail_name}")
+    if summary_name not in wb.sheetnames:
+        raise ValueError(f"missing sheet {summary_name}")
+
+    ws_d = wb[detail_name]
+    expected_d_cols = 1 + 2 * len(active_freqs)
+    if ws_d.max_column != expected_d_cols:
+        raise ValueError(f"{detail_name} cols {ws_d.max_column} != {expected_d_cols}")
+    expected_d_rows = 1 + len(samples)
+    if ws_d.max_row != expected_d_rows:
+        raise ValueError(f"{detail_name} rows {ws_d.max_row} != {expected_d_rows}")
+
+    for si, sname in enumerate(samples):
+        v = ws_d.cell(si + 2, 1).value
+        if str(v).strip() != str(sname).strip():
+            raise ValueError(f"{detail_name} sample R{si+2} mismatch: {v!r} vs {sname!r}")
+
+    for r in range(2, ws_d.max_row + 1):
+        for c in range(3, ws_d.max_column + 1, 2):  # bin columns are odd (3,5,7...)
+            v = ws_d.cell(r, c).value
+            if v is None:
+                continue
+            s = str(v).strip()
+            if s != "N/A" and not _BIN_LABEL_RE.match(s):
+                raise ValueError(f"{detail_name} bad bin label R{r}C{c}: {s!r}")
+            if s != "N/A":
+                lo_s, hi_s = s.split("~")
+                if int(lo_s) + 1 != int(hi_s):
+                    raise ValueError(f"{detail_name} bad bin width R{r}C{c}: {s!r}")
+
+    ws_s = wb[summary_name]
+    expected_s_cols = 2 * len(active_freqs)
+    if ws_s.max_column != expected_s_cols:
+        raise ValueError(f"{summary_name} cols {ws_s.max_column} != {expected_s_cols}")
+    a1 = ws_s.cell(1, 1).value
+    if a1 is None or "分组" not in str(a1):
+        raise ValueError(f"{summary_name} A1 must be 分组 title, got {a1!r}")
+
+    for fi in range(len(active_freqs)):
+        count_col = 2 + fi * 2  # 1-indexed
+        total = 0
+        for r in range(2, ws_s.max_row + 1):
+            v = ws_s.cell(r, count_col).value
+            if v is not None:
+                total += int(v)
+        non_none = sum(
+            1 for si in range(len(samples)) if ws_d.cell(si + 2, 2 + fi * 2).value is not None
+        )
+        if total != non_none:
+            raise ValueError(f"{summary_name} freq#{fi} sum {total} != non-None {non_none}")
 
 
 def _validate_focus_freqs(ff: list) -> list[float] | None:
@@ -187,11 +255,31 @@ def main(argv: list[str] | None = None) -> int:
                     row.append(None)
             ws_s.append(row)
 
+        try:
+            _verify_sheets(wb, angle, samples, active_freqs)
+        except ValueError as e:
+            # delete ALL freq_bins sheets written so far (current + prior angles)
+            # to avoid leaving partial output on multi-angle failure
+            if detail_name in wb.sheetnames:
+                del wb[detail_name]
+            if summary_name in wb.sheetnames:
+                del wb[summary_name]
+            for name in written:
+                if name in wb.sheetnames:
+                    del wb[name]
+            print(f"VERIFICATION FAIL for {angle!r}: {e}", file=sys.stderr)
+            wb.save(xlsx_path)
+            return 3
+
         written.append(detail_name)
         written.append(summary_name)
 
     wb.save(xlsx_path)
-    print(f"run_freq_bins: wrote {len(written)} sheets: {', '.join(written)}")
+    n_angles = len(written) // 2
+    print(
+        f"VERIFICATION OK: {n_angles} angles x 2 sheets, "
+        f"{len(samples)} samples, {len(active_freqs)} freq points"
+    )
     return 0
 
 

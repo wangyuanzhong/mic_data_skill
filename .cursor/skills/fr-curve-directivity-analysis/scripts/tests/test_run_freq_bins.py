@@ -216,3 +216,67 @@ def test_identical_deltas(tmp_path):
     assert str(ws_s.cell(2, 1).value) == "2~3"
     assert int(ws_s.cell(2, 2).value) == 2
 
+
+def test_verification_pass(tmp_path, capsys):
+    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000, 4000])
+
+    rc = run_freq_bins_main(["--params", str(out / "params.json")])
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert "VERIFICATION OK" in captured.out
+
+
+def test_verification_fail_exit3(tmp_path, monkeypatch):
+    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
+
+    # sabotage: make _bin_label produce an invalid label -> verify must catch -> exit 3
+    import run_freq_bins
+    monkeypatch.setattr(run_freq_bins, "_bin_label", lambda d: "BAD" if d is not None else "N/A")
+
+    rc = run_freq_bins_main(["--params", str(out / "params.json")])
+    assert rc == 3
+
+    wb = load_workbook(out / "process.xlsx")
+    assert "freq_bins_90" not in wb.sheetnames, "bad sheet must be deleted on verify fail"
+    assert "freq_bins_summary_90" not in wb.sheetnames
+
+
+def test_verification_fail_deletes_all_angles(tmp_path, monkeypatch):
+    # two non-axial angles; sabotage kicks in on first angle -> both must be absent
+    out = tmp_path
+    write_params(
+        out / "params.json",
+        output_dir=out,
+        angles=["axis", "90", "180"],
+        axial_angle="axis",
+        sample_count=2,
+        extra={"focus_freqs": [1000]},
+    )
+    build_angle_workbook(
+        out / "process.xlsx",
+        angles=["axis", "90", "180"],
+        samples=["S01", "S02"],
+        freqs=[100.0, 1000.0],
+        values_by_angle={
+            "axis": [[1.0, 2.0], [1.0, 2.0]],
+            "90": [[2.0, 3.0], [3.0, 4.0]],
+            "180": [[0.0, 1.0], [-1.0, 0.0]],
+        },
+    )
+    run_deltas_main(["--params", str(out / "params.json")])
+
+    import run_freq_bins
+    monkeypatch.setattr(run_freq_bins, "_bin_label", lambda d: "BAD" if d is not None else "N/A")
+
+    rc = run_freq_bins_main(["--params", str(out / "params.json")])
+    assert rc == 3
+
+    wb = load_workbook(out / "process.xlsx")
+    for tag in ("90", "180"):
+        assert f"freq_bins_{tag}" not in wb.sheetnames
+        assert f"freq_bins_summary_{tag}" not in wb.sheetnames
+
