@@ -308,6 +308,63 @@ def _write_peak_candidates(
         ws.append(list(row))
 
 
+def _verify_peak_sheets(wb, tag: str, f_lo: float, f_hi: float) -> None:
+    """Raise ValueError on L2 check failure.
+
+    Checks: class_mean columns ↔ final clustered classes; candidate/mean
+    freqs in [f_lo, f_hi]; selected ∈ {yes, no}.
+    """
+    mean_name = f"class_mean_{tag}"
+    cand_name = f"peak_candidates_{tag}"
+    final_name = f"cluster_final_{tag}"
+
+    for name in (mean_name, cand_name, final_name):
+        if name not in wb.sheetnames:
+            raise ValueError(f"missing sheet {name}")
+
+    _, final_ids, name_by_cid = _read_cluster_final(wb[final_name])
+    final_cids = {cid for cid in final_ids if cid != "unclustered"}
+    expected_names = sorted(
+        {
+            name_by_cid.get(cid, f"类{cid}" if isinstance(cid, int) else str(cid))
+            for cid in final_cids
+        }
+    )
+
+    ws_m = wb[mean_name]
+    mean_cols = [
+        str(ws_m.cell(1, c).value).strip()
+        for c in range(2, ws_m.max_column + 1)
+        if ws_m.cell(1, c).value is not None
+    ]
+    if sorted(mean_cols) != expected_names:
+        raise ValueError(
+            f"{mean_name} cols {mean_cols!r} != final classes {expected_names!r}"
+        )
+
+    for r in range(2, ws_m.max_row + 1):
+        fv = ws_m.cell(r, 1).value
+        if fv is None:
+            continue
+        f = float(fv)
+        if not (f_lo <= f <= f_hi):
+            raise ValueError(f"{mean_name} freq {f} out of band [{f_lo},{f_hi}]")
+
+    ws_c = wb[cand_name]
+    for r in range(2, ws_c.max_row + 1):
+        if ws_c.cell(r, 1).value is None and ws_c.cell(r, 3).value is None:
+            continue
+        try:
+            f = float(ws_c.cell(r, 3).value)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"{cand_name} R{r} bad freq: {ws_c.cell(r, 3).value!r}") from e
+        if not (f_lo <= f <= f_hi):
+            raise ValueError(f"{cand_name} freq {f} out of band [{f_lo},{f_hi}]")
+        sel = str(ws_c.cell(r, 7).value).strip().lower()
+        if sel not in ("yes", "no"):
+            raise ValueError(f"{cand_name} R{r} selected={sel!r} not in {{yes,no}}")
+
+
 def _peaks_for_angle(
     wb,
     *,
@@ -320,7 +377,7 @@ def _peaks_for_angle(
     prominence_db: float,
     min_octave: float,
 ) -> int:
-    """Write class_mean + peak_candidates for one angle. Returns 0 or 2."""
+    """Write class_mean + peak_candidates for one angle. Returns 0, 2, or 3."""
     final_name = f"cluster_final_{tag}"
     if final_name not in wb.sheetnames:
         print(f"missing {final_name}; run run_cluster first", file=sys.stderr)
@@ -378,6 +435,16 @@ def _peaks_for_angle(
 
     _write_class_mean(_replace_sheet(wb, mean_name), band_freqs, col_names, means)
     _write_peak_candidates(_replace_sheet(wb, cand_name), candidate_rows)
+
+    try:
+        _verify_peak_sheets(wb, tag, f_lo, f_hi)
+    except ValueError as e:
+        for name in (mean_name, cand_name):
+            if name in wb.sheetnames:
+                del wb[name]
+        print(f"VERIFICATION FAIL for {tag!r}: {e}", file=sys.stderr)
+        return 3
+
     return 0
 
 
@@ -455,10 +522,16 @@ def main(argv: list[str] | None = None) -> int:
             min_octave=min_octave,
         )
         if rc != 0:
+            if rc == 3:
+                wb.save(xlsx_path)
             return rc
         written.append(tag)
 
     wb.save(xlsx_path)
+    print(
+        f"VERIFICATION OK: {len(written)} angles, "
+        f"class_mean/peak_candidates written"
+    )
     print(
         f"run_peaks: wrote class_mean/peak_candidates for "
         f"{len(written)} angles: {', '.join(written)}"

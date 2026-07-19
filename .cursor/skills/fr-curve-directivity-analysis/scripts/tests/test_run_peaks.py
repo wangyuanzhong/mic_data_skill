@@ -97,3 +97,26 @@ def test_invalid_prominence_exit2(tmp_path):
     p["peak_prominence_db"] = 0
     (out / "params.json").write_text(json.dumps(p), encoding="utf-8")
     assert run_peaks_main(["--params", str(out / "params.json")]) == 2
+
+
+def test_peaks_verification_pass(tmp_path, capsys):
+    out = _prep_clustered(tmp_path)
+    capsys.readouterr()  # drop prep (cluster) VERIFICATION OK
+    rc = run_peaks_main(["--params", str(out / "params.json")])
+    assert rc == 0
+    assert "VERIFICATION OK" in capsys.readouterr().out
+
+
+def test_peaks_verification_fail_exit3(tmp_path, monkeypatch):
+    out = _prep_clustered(tmp_path)
+    import run_peaks
+
+    def bad_verify(*a, **k):
+        raise ValueError("sabotage")
+
+    monkeypatch.setattr(run_peaks, "_verify_peak_sheets", bad_verify)
+    rc = run_peaks_main(["--params", str(out / "params.json")])
+    assert rc == 3
+    wb = load_workbook(out / "process.xlsx")
+    assert "class_mean_90" not in wb.sheetnames
+    assert "peak_candidates_90" not in wb.sheetnames
