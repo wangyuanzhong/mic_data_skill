@@ -246,7 +246,8 @@ def test_verification_fail_exit3(tmp_path, monkeypatch):
 
 
 def test_verification_fail_deletes_all_angles(tmp_path, monkeypatch):
-    # two non-axial angles; sabotage kicks in on first angle -> both must be absent
+    # two non-axial angles; sabotage _verify_sheets to fail only for "180"
+    # so "90" passes (appended to written) then "180" fails -> rollback deletes both
     out = tmp_path
     write_params(
         out / "params.json",
@@ -270,13 +271,20 @@ def test_verification_fail_deletes_all_angles(tmp_path, monkeypatch):
     run_deltas_main(["--params", str(out / "params.json")])
 
     import run_freq_bins
-    monkeypatch.setattr(run_freq_bins, "_bin_label", lambda d: "BAD" if d is not None else "N/A")
+    original_verify = run_freq_bins._verify_sheets
+
+    def sabotaged_verify(wb, angle, samples, active_freqs):
+        if angle == "180":
+            raise ValueError("sabotaged for 180")
+        return original_verify(wb, angle, samples, active_freqs)
+
+    monkeypatch.setattr(run_freq_bins, "_verify_sheets", sabotaged_verify)
 
     rc = run_freq_bins_main(["--params", str(out / "params.json")])
     assert rc == 3
 
     wb = load_workbook(out / "process.xlsx")
     for tag in ("90", "180"):
-        assert f"freq_bins_{tag}" not in wb.sheetnames
-        assert f"freq_bins_summary_{tag}" not in wb.sheetnames
+        assert f"freq_bins_{tag}" not in wb.sheetnames, f"freq_bins_{tag} should be rolled back"
+        assert f"freq_bins_summary_{tag}" not in wb.sheetnames, f"freq_bins_summary_{tag} should be rolled back"
 
