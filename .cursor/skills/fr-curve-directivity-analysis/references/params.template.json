@@ -1,0 +1,16 @@
+{
+  "product": "",
+  "note": "",
+  "data_root": "",
+  "output_dir": "",
+  "unit": "",
+  "f_lo_hz": 250,
+  "f_hi_hz": 20000,
+  "process_xlsx": "process.xlsx",
+  "process_md": "process.md",
+  "angles": [],
+  "axial_angle": "",
+  "sample_count": null,
+  "envelope": null,
+  "focus_freqs": [1000]
+}
