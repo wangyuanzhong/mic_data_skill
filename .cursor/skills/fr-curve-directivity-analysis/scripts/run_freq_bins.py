@@ -1,0 +1,158 @@
+# -*- coding: utf-8 -*-
+"""run_freq_bins.py — write freq_bins_<tag> + freq_bins_summary_<tag> per non-axial angle.
+
+For each non-axial angle's delta_<tag> sheet, for each focus frequency, find the
+nearest frequency, take per-sample deltas, bin into 1dB left-closed right-open
+bins, and write a detail sheet and a summary sheet.
+
+Usage:
+    python run_freq_bins.py --params <output_dir>/params.json
+"""
+from __future__ import annotations
+
+import argparse
+import math
+import sys
+from pathlib import Path
+
+from openpyxl import load_workbook
+from openpyxl.worksheet.worksheet import Worksheet
+
+from angle_sheets import normalize_angle_tag, read_angle_sheet
+from params_io import load_params, resolve_under_output
+from utf8_boot import ensure_utf8_stdio
+
+
+def _format_hz(ff: float) -> str:
+    if ff == int(ff):
+        return str(int(ff))
+    return str(ff)
+
+
+def _nearest_freq_index(freqs: list[float], target: float) -> int:
+    best_i = 0
+    best_d = abs(freqs[0] - target)
+    for i in range(1, len(freqs)):
+        d = abs(freqs[i] - target)
+        if d < best_d or (d == best_d and freqs[i] < freqs[best_i]):
+            best_i = i
+            best_d = d
+    return best_i
+
+
+def _bin_label(d: float) -> str:
+    lo = math.floor(d)
+    return f"{lo}~{lo + 1}"
+
+
+def _bin_range(present: list[float]) -> tuple[int, int]:
+    return math.floor(min(present)), math.ceil(max(present))
+
+
+def _replace_sheet(wb, name: str) -> Worksheet:
+    if name in wb.sheetnames:
+        del wb[name]
+    return wb.create_sheet(name)
+
+
+def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
+    parser = argparse.ArgumentParser(description="Write freq_bins_<tag> sheets.")
+    parser.add_argument("--params", required=True, type=Path)
+    args = parser.parse_args(argv)
+
+    params = load_params(args.params)
+    xlsx_path = resolve_under_output(params, "process_xlsx", args.params)
+    angles = params.get("angles") or []
+    axial = params.get("axial_angle") or ""
+    f_lo = float(params.get("f_lo_hz") or 0)
+    f_hi = float(params.get("f_hi_hz") or 0)
+    focus_freqs = [float(v) for v in (params.get("focus_freqs") or [])]
+
+    if not angles:
+        print("params.angles is empty", file=sys.stderr)
+        return 2
+
+    wb = load_workbook(xlsx_path)
+    written: list[str] = []
+
+    for angle in angles:
+        if angle == axial:
+            continue
+        tag = normalize_angle_tag(angle)
+        delta_name = f"delta_{tag}"
+        if delta_name not in wb.sheetnames:
+            print(f"delta sheet {delta_name!r} missing", file=sys.stderr)
+            return 2
+        freqs, samples, cols = read_angle_sheet(wb[delta_name])
+
+        active_freqs: list[float] = []
+        per_freq_deltas: list[list[float]] = []
+        per_freq_bins: list[list[tuple[int, int]]] = []
+        for ff in focus_freqs:
+            idx = _nearest_freq_index(freqs, ff)
+            nearest = freqs[idx]
+            if nearest < f_lo or nearest > f_hi:
+                print(f"focus_freq {ff} -> nearest {nearest} out of band, skip", file=sys.stderr)
+                continue
+            deltas = [cols[si][idx] for si in range(len(samples))]
+            lo, hi = _bin_range(deltas)
+            counts: dict[int, int] = {b: 0 for b in range(lo, hi)}
+            for d in deltas:
+                b = max(lo, min(hi - 1, math.floor(d)))
+                counts[b] += 1
+            active_freqs.append(ff)
+            per_freq_deltas.append(deltas)
+            per_freq_bins.append([(b, counts[b]) for b in range(lo, hi)])
+
+        if not active_freqs:
+            continue
+
+        detail_name = f"freq_bins_{tag}"
+        ws_d = _replace_sheet(wb, detail_name)
+        headers = ["样机"]
+        for ff in active_freqs:
+            hz = _format_hz(ff)
+            headers.append(f"{hz}Hz差值")
+            headers.append(f"{hz}Hz档位")
+        ws_d.append(headers)
+        for si, sname in enumerate(samples):
+            row = [sname]
+            for fi in range(len(active_freqs)):
+                d = per_freq_deltas[fi][si]
+                row.append(d)
+                row.append(_bin_label(d))
+            ws_d.append(row)
+
+        summary_name = f"freq_bins_summary_{tag}"
+        ws_s = _replace_sheet(wb, summary_name)
+        sheaders: list[str] = []
+        for ff in active_freqs:
+            hz = _format_hz(ff)
+            sheaders.append(f"{hz}分组")
+            sheaders.append(f"{hz}每组数量")
+        ws_s.append(sheaders)
+        max_rows = max((len(b) for b in per_freq_bins), default=0)
+        for r in range(max_rows):
+            row: list = []
+            for fi in range(len(active_freqs)):
+                bins = per_freq_bins[fi]
+                if r < len(bins):
+                    lo, count = bins[r]
+                    row.append(f"{lo}~{lo + 1}")
+                    row.append(count)
+                else:
+                    row.append(None)
+                    row.append(None)
+            ws_s.append(row)
+
+        written.append(detail_name)
+        written.append(summary_name)
+
+    wb.save(xlsx_path)
+    print(f"run_freq_bins: wrote {len(written)} sheets: {', '.join(written)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
