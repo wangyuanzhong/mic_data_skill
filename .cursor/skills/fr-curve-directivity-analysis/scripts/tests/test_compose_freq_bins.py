@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from compose_html import compose_report_html
 from conftest import build_angle_workbook, write_params
 from run_deltas import main as run_deltas_main
@@ -55,3 +57,17 @@ def test_skip_when_empty(tmp_path):
     html_path = compose_report_html(out)
     text = html_path.read_text(encoding="utf-8")
     assert "频点差值分档" not in text
+
+
+def test_exit2_when_sheet_missing(tmp_path):
+    out = _prep(tmp_path, focus_freqs=[1000])
+    # delete the freq_bins sheets to simulate run_freq_bins not having run / failed
+    from openpyxl import load_workbook
+    wb = load_workbook(out / "process.xlsx")
+    del wb["freq_bins_90"]
+    del wb["freq_bins_summary_90"]
+    wb.save(out / "process.xlsx")
+
+    with pytest.raises(SystemExit) as exc:
+        compose_report_html(out)
+    assert exc.value.code == 2
