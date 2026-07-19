@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-run_cluster.py — Euclidean distance matrix + k=1 cluster suggestion.
+run_cluster.py — Euclidean distance matrix + hierarchical clustering.
 
 For each non-axial delta_<tag> sheet, band-limit to [f_lo_hz, f_hi_hz],
-compute sample×sample Euclidean distances (None pairs skipped), assign all
-clusterable samples to one cluster (k=1 path; multi-k in a later task), and
-write cluster_dist / cluster_suggest / cluster_meta / cluster_final (if missing).
+compute sample×sample Euclidean distances (None pairs skipped), choose k via
+average-linkage silhouette, and write cluster_dist / cluster_suggest /
+cluster_meta / cluster_final (if missing).
 
 Usage:
     python run_cluster.py --params <output_dir>/params.json
@@ -17,8 +17,11 @@ import math
 import sys
 from pathlib import Path
 
+import numpy as np
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
 
 from angle_sheets import normalize_angle_tag, read_angle_sheet
 from params_io import load_params, resolve_under_output
@@ -83,6 +86,71 @@ def _class_center(members: list[list[float | None]]) -> list[float | None]:
     return out
 
 
+def _silhouette_precomputed(dist: np.ndarray, labels: np.ndarray) -> float:
+    """Mean silhouette score using a precomputed pairwise distance matrix."""
+    n = dist.shape[0]
+    if n < 2:
+        return 0.0
+    labels = np.asarray(labels)
+    unique = np.unique(labels)
+    if len(unique) < 2:
+        return 0.0
+
+    scores: list[float] = []
+    for i in range(n):
+        same = labels == labels[i]
+        n_same = int(np.sum(same)) - 1  # exclude self
+        if n_same <= 0:
+            a = 0.0  # singleton: no intra-cluster peers
+        else:
+            a = float(np.mean(dist[i, same & (np.arange(n) != i)]))
+        b = float("inf")
+        for lab in unique:
+            if lab == labels[i]:
+                continue
+            members = labels == lab
+            if not np.any(members):
+                continue
+            b = min(b, float(np.mean(dist[i, members])))
+        if not math.isfinite(b):
+            scores.append(0.0)
+            continue
+        denom = max(a, b)
+        scores.append(0.0 if denom == 0.0 else (b - a) / denom)
+    return float(np.mean(scores))
+
+
+def _labels_for_k(dist: np.ndarray, k: int) -> np.ndarray:
+    """Cluster labels (1..k) via average linkage on precomputed distances."""
+    n = dist.shape[0]
+    if k <= 1 or n < 2:
+        return np.ones(n, dtype=int)
+    condensed = squareform(dist, checks=False)
+    Z = linkage(condensed, method="average")
+    return fcluster(Z, t=k, criterion="maxclust")
+
+
+def _choose_k(dist: np.ndarray, k_max: int) -> tuple[int, list[tuple[int, float | str]]]:
+    n = dist.shape[0]
+    rows: list[tuple[int, float | str]] = []
+    best_k, best_s = 1, float("-inf")
+    upper = min(k_max, n)
+    for k in range(1, upper + 1):
+        if k == 1:
+            rows.append((1, "N/A"))
+            continue
+        labels = _labels_for_k(dist, k)
+        s = _silhouette_precomputed(dist, labels)
+        rows.append((k, s))
+        if s > best_s or (s == best_s and k < best_k):
+            best_s, best_k = s, k
+    # k=1 (silhouette N/A) wins when no positive silhouette exists —
+    # e.g. identical samples forced into k=n singletons score 0.
+    if best_s <= 0:
+        best_k = 1
+    return best_k, rows
+
+
 def _write_dist(
     ws: Worksheet,
     samples: list[str],
@@ -107,10 +175,14 @@ def _write_suggest(
         ws.append([name, cid, d])
 
 
-def _write_meta(ws: Worksheet, *, chosen_k: int = 1) -> None:
+def _write_meta(
+    ws: Worksheet,
+    rows: list[tuple[int, float | str]],
+    chosen_k: int,
+) -> None:
     ws.append(["k", "silhouette", "chosen"])
-    # Task 2: force k=1 path only
-    ws.append([1, "N/A", "yes" if chosen_k == 1 else "no"])
+    for k, sil in rows:
+        ws.append([k, sil, "yes" if k == chosen_k else "no"])
 
 
 def _write_final(
@@ -136,6 +208,7 @@ def _cluster_angle(
     cols: list[list[float | None]],
     f_lo: float,
     f_hi: float,
+    k_max: int,
 ) -> int:
     """Write cluster sheets for one angle. Returns 0 or 2."""
     band_cols = _band_columns(freqs, cols, f_lo, f_hi)
@@ -158,23 +231,34 @@ def _cluster_angle(
             d = _euclid(band_cols[i], band_cols[j])
             dist[i][j] = d
 
-    # k=1: all clusterable → cluster 1
-    cluster_ids: list[int | str] = []
-    members: list[list[float | None]] = []
-    for i in range(n):
-        if clusterable[i]:
-            cluster_ids.append(1)
-            members.append(band_cols[i])
-        else:
-            cluster_ids.append("unclustered")
+    # Square distance matrix over clusterable samples only
+    idx = [i for i in range(n) if clusterable[i]]
+    core = np.zeros((n_clusterable, n_clusterable), dtype=float)
+    for a, i in enumerate(idx):
+        for b, j in enumerate(idx):
+            val = dist[i][j]
+            core[a, b] = 0.0 if val is None else float(val)
 
-    center = _class_center(members)
+    chosen_k, meta_rows = _choose_k(core, k_max)
+    labels_core = _labels_for_k(core, chosen_k)
+
+    # Map labels back; build per-cluster members for centers
+    cluster_ids: list[int | str] = ["unclustered"] * n
+    members_by_cid: dict[int, list[list[float | None]]] = {}
+    for local, global_i in enumerate(idx):
+        cid = int(labels_core[local])
+        cluster_ids[global_i] = cid
+        members_by_cid.setdefault(cid, []).append(band_cols[global_i])
+
+    centers = {cid: _class_center(members) for cid, members in members_by_cid.items()}
+
     dist_to_center: list[float | None] = []
     for i in range(n):
-        if not clusterable[i]:
+        cid = cluster_ids[i]
+        if not isinstance(cid, int):
             dist_to_center.append(None)
         else:
-            dist_to_center.append(_euclid(band_cols[i], center))
+            dist_to_center.append(_euclid(band_cols[i], centers[cid]))
 
     dist_name = f"cluster_dist_{tag}"
     suggest_name = f"cluster_suggest_{tag}"
@@ -185,7 +269,7 @@ def _cluster_angle(
     _write_suggest(
         _replace_sheet(wb, suggest_name), samples, cluster_ids, dist_to_center
     )
-    _write_meta(_replace_sheet(wb, meta_name), chosen_k=1)
+    _write_meta(_replace_sheet(wb, meta_name), meta_rows, chosen_k)
 
     if final_name not in wb.sheetnames:
         _write_final(_replace_sheet(wb, final_name), samples, cluster_ids)
@@ -248,6 +332,7 @@ def main(argv: list[str] | None = None) -> int:
             cols=cols,
             f_lo=f_lo,
             f_hi=f_hi,
+            k_max=k_max,
         )
         if rc != 0:
             return rc

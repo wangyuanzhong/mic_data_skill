@@ -60,3 +60,22 @@ def test_two_identical_samples_k1(tmp_path):
     chosen = [r for r in range(2, ws_m.max_row + 1) if str(ws_m.cell(r, 3).value) == "yes"]
     assert len(chosen) == 1
     assert int(ws_m.cell(chosen[0], 1).value) == 1
+
+
+def test_two_clear_groups_k2(tmp_path):
+    # S01 delta ~ +1 everywhere; S02 delta ~ +10 everywhere → 2 clusters
+    axis = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+    ang = [[1.0, 1.0, 1.0], [10.0, 10.0, 10.0]]
+    out = _prep(tmp_path, axis_cols=axis, angle_cols=ang)
+
+    rc = run_cluster_main(["--params", str(out / "params.json")])
+    assert rc == 0
+
+    wb = load_workbook(out / "process.xlsx")
+    ws_m = wb["cluster_meta_90"]
+    chosen = [r for r in range(2, ws_m.max_row + 1) if str(ws_m.cell(r, 3).value) == "yes"]
+    assert int(ws_m.cell(chosen[0], 1).value) == 2
+
+    ws_s = wb["cluster_suggest_90"]
+    ids = {int(ws_s.cell(2, 2).value), int(ws_s.cell(3, 2).value)}
+    assert ids == {1, 2}
