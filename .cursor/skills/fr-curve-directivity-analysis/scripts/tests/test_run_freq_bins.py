@@ -129,3 +129,19 @@ def test_all_freqs_out_of_band_exit0(tmp_path, capsys):
     assert "freq_bins_90" not in wb.sheetnames
     captured = capsys.readouterr()
     assert "out of band" in captured.err
+
+
+def test_idempotent(tmp_path):
+    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
+
+    run_freq_bins_main(["--params", str(out / "params.json")])
+    run_freq_bins_main(["--params", str(out / "params.json")])
+
+    wb = load_workbook(out / "process.xlsx")
+    freq_bins_sheets = [n for n in wb.sheetnames if n.startswith("freq_bins")]
+    # exactly 2: freq_bins_90 + freq_bins_summary_90, no duplicates
+    assert sorted(freq_bins_sheets) == ["freq_bins_90", "freq_bins_summary_90"]
+    ws_d = wb["freq_bins_90"]
+    assert ws_d.max_row == 1 + 2  # not doubled
