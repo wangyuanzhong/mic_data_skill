@@ -169,3 +169,29 @@ def test_invalid_focus_freqs_exit2(tmp_path):
         )
         rc = run_freq_bins_main(["--params", str(out / "params.json")])
         assert rc == 2, f"expected exit 2 for focus_freqs={bv}"
+
+
+def test_missing_delta_sheet_exit2(tmp_path):
+    out = tmp_path
+    write_params(
+        out / "params.json",
+        output_dir=out,
+        angles=["axis", "90"],
+        axial_angle="axis",
+        sample_count=2,
+        extra={"focus_freqs": [1000]},
+    )
+    build_angle_workbook(
+        out / "process.xlsx",
+        angles=["axis", "90"],
+        samples=["S01", "S02"],
+        freqs=[100.0, 1000.0],
+        values_by_angle={
+            "axis": [[1.0, 2.0], [1.0, 2.0]],
+            "90": [[2.0, 3.0], [3.0, 4.0]],
+        },
+    )
+    # do NOT run run_deltas -> no delta_90 sheet
+
+    rc = run_freq_bins_main(["--params", str(out / "params.json")])
+    assert rc == 2
