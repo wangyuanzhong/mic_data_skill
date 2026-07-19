@@ -71,3 +71,17 @@ def test_exit2_when_sheet_missing(tmp_path):
     with pytest.raises(SystemExit) as exc:
         compose_report_html(out)
     assert exc.value.code == 2
+
+
+def test_report_verification_fail_exit3(tmp_path, monkeypatch):
+    out = _prep(tmp_path, focus_freqs=[1000])
+    import compose_html
+    orig = compose_html.build_freq_bins_html
+    def bad(output_dir, params):
+        html = orig(output_dir, params)
+        return html.replace("每组数量", "X")
+    monkeypatch.setattr(compose_html, "build_freq_bins_html", bad)
+
+    with pytest.raises(SystemExit) as exc:
+        compose_report_html(out)
+    assert exc.value.code == 3

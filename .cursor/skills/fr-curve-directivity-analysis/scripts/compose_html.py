@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re as _re
+import sys
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -159,6 +161,47 @@ def build_freq_bins_html(output_dir: Path, params: dict) -> str:
     return body
 
 
+def _verify_report_html(html_path: Path, params: dict) -> None:
+    """Spec §6.2 L3 checks. Raise ValueError on failure."""
+    focus_freqs = params.get("focus_freqs") or []
+    if not focus_freqs:
+        return  # nothing to verify
+    text = html_path.read_text(encoding="utf-8")
+    if "频点差值分档" not in text:
+        raise ValueError("missing 频点差值分档 section title")
+    angles = params.get("angles") or []
+    axial = params.get("axial_angle") or ""
+    non_axial = [a for a in angles if a != axial]
+    if not non_axial:
+        return
+
+    n_detail = len(_re.findall(r'class="freq-bins-detail"', text))
+    n_summary = len(_re.findall(r'class="freq-bins-summary"', text))
+    if n_detail != len(non_axial):
+        raise ValueError(f"detail tables {n_detail} != non-axial angles {len(non_axial)}")
+    if n_summary != len(non_axial):
+        raise ValueError(f"summary tables {n_summary} != non-axial angles {len(non_axial)}")
+    if "每组数量" not in text:
+        raise ValueError("missing 每组数量 header in summary table")
+
+    expected_d_cols = 1 + 2 * len(focus_freqs)
+    expected_s_cols = 2 * len(focus_freqs)
+
+    m = _re.search(r'class="freq-bins-detail"><thead><tr>(.*?)</tr>', text)
+    if not m:
+        raise ValueError("cannot parse detail table header")
+    d_th_count = len(_re.findall(r"<th>", m.group(1)))
+    if d_th_count != expected_d_cols:
+        raise ValueError(f"detail table cols {d_th_count} != {expected_d_cols}")
+
+    m = _re.search(r'class="freq-bins-summary"><thead><tr>(.*?)</tr>', text)
+    if not m:
+        raise ValueError("cannot parse summary table header")
+    s_th_count = len(_re.findall(r"<th>", m.group(1)))
+    if s_th_count != expected_s_cols:
+        raise ValueError(f"summary table cols {s_th_count} != {expected_s_cols}")
+
+
 def list_delta_figures(figures_dir: Path) -> list[Path]:
     return sorted(figures_dir.glob("差值叠图_*.png"))
 
@@ -229,6 +272,11 @@ def compose_report_html(
     )
     out = output_dir / "report.html"
     write_text(out, rendered)
+    try:
+        _verify_report_html(out, params)
+    except ValueError as e:
+        print(f"REPORT VERIFICATION FAIL: {e}", file=sys.stderr)
+        raise SystemExit(3)
     return out
 
 
