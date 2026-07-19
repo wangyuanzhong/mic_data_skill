@@ -216,22 +216,3 @@ def test_identical_deltas(tmp_path):
     assert str(ws_s.cell(2, 1).value) == "2~3"
     assert int(ws_s.cell(2, 2).value) == 2
 
-
-def test_identical_deltas(tmp_path):
-    # all deltas at 1000Hz are exactly +2.0 -> single bin "2~3"
-    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
-    angle_cols = [[3.0, 4.0, 5.0], [3.0, 4.0, 5.0]]  # both +2.0
-    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
-
-    rc = run_freq_bins_main(["--params", str(out / "params.json")])
-    assert rc == 0
-
-    wb = load_workbook(out / "process.xlsx")
-    ws_d = wb["freq_bins_90"]
-    assert str(ws_d.cell(2, 3).value) == "2~3"
-    assert str(ws_d.cell(3, 3).value) == "2~3"
-    ws_s = wb["freq_bins_summary_90"]
-    # exactly one bin row, count == 2
-    assert ws_s.max_row == 2
-    assert str(ws_s.cell(2, 1).value) == "2~3"
-    assert int(ws_s.cell(2, 2).value) == 2
