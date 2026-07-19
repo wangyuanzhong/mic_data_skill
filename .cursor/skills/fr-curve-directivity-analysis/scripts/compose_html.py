@@ -270,12 +270,38 @@ def build_trend_html(output_dir: Path, params: dict) -> str:
     return body
 
 
+def _verify_trend_html(text: str, params: dict) -> None:
+    """Spec §6.3 L3 trend checks. Raise ValueError on failure.
+
+    Always runs (SP3 default always produces 走势分析), even when focus_freqs is empty.
+    """
+    if "走势分析" not in text:
+        raise ValueError("missing 走势分析 section title")
+    angles = params.get("angles") or []
+    axial = params.get("axial_angle") or ""
+    non_axial = [a for a in angles if a != axial]
+    if not non_axial:
+        return
+    n_cluster = len(_re.findall(r'class="trend-cluster"', text))
+    if n_cluster != len(non_axial):
+        raise ValueError(
+            f"trend cluster tables {n_cluster} != non-axial angles {len(non_axial)}"
+        )
+    # If selected-peak tables were rendered, require peak/valley column headers
+    if 'class="trend-peaks"' in text:
+        for col in ("中心频率", "幅度", "Q"):
+            if col not in text:
+                raise ValueError(f"missing peak table column {col}")
+
+
 def _verify_report_html(html_path: Path, params: dict) -> None:
-    """Spec §6.2 L3 checks. Raise ValueError on failure."""
+    """Spec §6.2 freq_bins L3 + §6.3 trend L3. Raise ValueError on failure."""
+    text = html_path.read_text(encoding="utf-8")
+    _verify_trend_html(text, params)
+
     focus_freqs = params.get("focus_freqs") or []
     if not focus_freqs:
-        return  # nothing to verify
-    text = html_path.read_text(encoding="utf-8")
+        return  # freq_bins section skipped
     if "频点差值分档" not in text:
         raise ValueError("missing 频点差值分档 section title")
     angles = params.get("angles") or []

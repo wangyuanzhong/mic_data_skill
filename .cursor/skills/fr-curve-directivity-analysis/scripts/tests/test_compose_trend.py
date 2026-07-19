@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from openpyxl import load_workbook
 
 from compose_html import compose_report_html
@@ -74,3 +75,35 @@ def test_render_trend_section(tmp_path):
     # section numbering: trend is 5, conclusion is 6
     assert "5. 走势分析" in text
     assert "6. 结论" in text
+
+
+def test_trend_exit2_when_sheet_missing(tmp_path):
+    out = _prep(tmp_path)
+    wb = load_workbook(out / "process.xlsx")
+    del wb["cluster_final_90"]
+    del wb["peak_candidates_90"]
+    wb.save(out / "process.xlsx")
+
+    with pytest.raises(SystemExit) as exc:
+        compose_report_html(out)
+    assert exc.value.code == 2
+
+
+def test_trend_verification_fail_exit3(tmp_path, monkeypatch):
+    out = _prep(tmp_path)
+    import compose_html
+
+    orig = compose_html.build_trend_html
+
+    def bad(output_dir, params):
+        html = orig(output_dir, params)
+        # drop classification table marker to force L3 check fail
+        return html.replace("trend-cluster", "X")
+
+    monkeypatch.setattr(compose_html, "build_trend_html", bad)
+
+    with pytest.raises(SystemExit) as exc:
+        compose_report_html(out)
+    assert exc.value.code == 3
+    # L3 fail keeps html for inspection
+    assert (out / "report.html").is_file()
