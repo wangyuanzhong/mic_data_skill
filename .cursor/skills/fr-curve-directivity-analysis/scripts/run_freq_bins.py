@@ -40,13 +40,19 @@ def _nearest_freq_index(freqs: list[float], target: float) -> int:
     return best_i
 
 
-def _bin_label(d: float) -> str:
+def _bin_label(d: float | None) -> str:
+    if d is None:
+        return "N/A"
     lo = math.floor(d)
     return f"{lo}~{lo + 1}"
 
 
 def _bin_range(present: list[float]) -> tuple[int, int]:
-    return math.floor(min(present)), math.ceil(max(present))
+    lo = math.floor(min(present))
+    hi = math.ceil(max(present))
+    if lo == hi:
+        hi = lo + 1
+    return lo, hi
 
 
 def _replace_sheet(wb, name: str) -> Worksheet:
@@ -96,9 +102,15 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"focus_freq {ff} -> nearest {nearest} out of band, skip", file=sys.stderr)
                 continue
             deltas = [cols[si][idx] for si in range(len(samples))]
-            lo, hi = _bin_range(deltas)
+            present = [d for d in deltas if d is not None]
+            if not present:
+                lo, hi = 0, 1
+            else:
+                lo, hi = _bin_range(present)
             counts: dict[int, int] = {b: 0 for b in range(lo, hi)}
             for d in deltas:
+                if d is None:
+                    continue
                 b = max(lo, min(hi - 1, math.floor(d)))
                 counts[b] += 1
             active_freqs.append(ff)
