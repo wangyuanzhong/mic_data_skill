@@ -93,3 +93,24 @@ def test_empty_focus_freqs(tmp_path):
     wb = load_workbook(out / "process.xlsx")
     assert "freq_bins_90" not in wb.sheetnames
     assert "freq_bins_summary_90" not in wb.sheetnames
+
+
+def test_freq_out_of_band(tmp_path, capsys):
+    # f_lo=250, f_hi=20000; focus 50Hz is below band
+    axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
+    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]
+    out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[50, 1000])
+
+    rc = run_freq_bins_main(["--params", str(out / "params.json")])
+    assert rc == 0
+
+    wb = load_workbook(out / "process.xlsx")
+    ws_d = wb["freq_bins_90"]
+    # only 1000Hz active -> cols = 1 + 1*2 = 3
+    assert ws_d.max_column == 3
+    assert "1000Hz" in str(ws_d.cell(1, 2).value)
+    # 50Hz column must NOT exist
+    for c in range(1, ws_d.max_column + 1):
+        assert "50Hz" not in str(ws_d.cell(1, c).value)
+    captured = capsys.readouterr()
+    assert "out of band" in captured.err
