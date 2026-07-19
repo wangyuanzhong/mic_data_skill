@@ -57,3 +57,43 @@ def test_class_mean_and_peak_candidate(tmp_path):
              if str(ws_p.cell(r, 2).value) == "peak"]
     assert any(abs(f - 1000.0) / 1000.0 < 0.05 for f in freqs)
     assert all(str(ws_p.cell(r, 7).value) == "no" for r in range(2, ws_p.max_row + 1))
+
+
+def test_missing_final_exit2(tmp_path):
+    out = _prep_clustered(tmp_path)
+    wb = load_workbook(out / "process.xlsx")
+    del wb["cluster_final_90"]
+    wb.save(out / "process.xlsx")
+    assert run_peaks_main(["--params", str(out / "params.json")]) == 2
+
+
+def test_selected_preserved_on_rerun(tmp_path):
+    out = _prep_clustered(tmp_path)
+    run_peaks_main(["--params", str(out / "params.json")])
+    wb = load_workbook(out / "process.xlsx")
+    ws = wb["peak_candidates_90"]
+    # select first peak row
+    for r in range(2, ws.max_row + 1):
+        if str(ws.cell(r, 2).value) == "peak":
+            ws.cell(r, 7).value = "yes"
+            old_f = float(ws.cell(r, 3).value)
+            break
+    wb.save(out / "process.xlsx")
+    run_peaks_main(["--params", str(out / "params.json")])
+    wb = load_workbook(out / "process.xlsx")
+    ws = wb["peak_candidates_90"]
+    found = False
+    for r in range(2, ws.max_row + 1):
+        if str(ws.cell(r, 2).value) == "peak" and str(ws.cell(r, 7).value) == "yes":
+            assert abs(float(ws.cell(r, 3).value) - old_f) / old_f <= 0.005
+            found = True
+    assert found
+
+
+def test_invalid_prominence_exit2(tmp_path):
+    out = _prep_clustered(tmp_path)
+    import json
+    p = json.loads((out / "params.json").read_text(encoding="utf-8"))
+    p["peak_prominence_db"] = 0
+    (out / "params.json").write_text(json.dumps(p), encoding="utf-8")
+    assert run_peaks_main(["--params", str(out / "params.json")]) == 2

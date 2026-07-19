@@ -19,11 +19,13 @@ from pathlib import Path
 import numpy as np
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, peak_widths
 
 from angle_sheets import normalize_angle_tag, read_angle_sheet
 from params_io import load_params, resolve_under_output
 from utf8_boot import ensure_utf8_stdio
+
+_SELECTED_MATCH_REL = 0.005
 
 
 def _replace_sheet(wb, name: str) -> Worksheet:
@@ -160,6 +162,119 @@ def _find_extrema(
     return out
 
 
+def _interp_freq(freqs: list[float], ip: float) -> float | None:
+    """Linear interpolate frequency at fractional sample index."""
+    n = len(freqs)
+    if n == 0 or not math.isfinite(ip):
+        return None
+    if ip <= 0:
+        return float(freqs[0])
+    if ip >= n - 1:
+        return float(freqs[n - 1])
+    i0 = int(math.floor(ip))
+    i1 = i0 + 1
+    t = ip - i0
+    return float(freqs[i0]) * (1.0 - t) + float(freqs[i1]) * t
+
+
+def _compute_q(
+    mean: list[float | None],
+    freqs: list[float],
+    idx: int,
+    kind: str,
+) -> float | str:
+    """Q = f0 / Δf_FWHM via half-height width; valleys on -mean. Fail → \"N/A\"."""
+    if idx < 0 or idx >= len(freqs) or idx >= len(mean):
+        return "N/A"
+    f0 = float(freqs[idx])
+    if f0 <= 0 or mean[idx] is None:
+        return "N/A"
+    y = _to_array(mean)
+    search = y if kind == "peak" else -y
+    try:
+        widths, _, left_ips, right_ips = peak_widths(search, np.array([idx]), rel_height=0.5)
+    except Exception:
+        return "N/A"
+    if len(widths) == 0 or not math.isfinite(float(widths[0])) or float(widths[0]) <= 0:
+        return "N/A"
+    f_left = _interp_freq(freqs, float(left_ips[0]))
+    f_right = _interp_freq(freqs, float(right_ips[0]))
+    if f_left is None or f_right is None:
+        return "N/A"
+    df = f_right - f_left
+    if df <= 0 or not math.isfinite(df):
+        return "N/A"
+    q = f0 / df
+    if not math.isfinite(q) or q <= 0:
+        return "N/A"
+    return float(q)
+
+
+def _normalize_cid(raw) -> int | str:
+    if raw is None:
+        return ""
+    sid = str(raw).strip()
+    if sid == "unclustered":
+        return "unclustered"
+    try:
+        return int(raw) if not isinstance(raw, str) else int(sid)
+    except (TypeError, ValueError):
+        return sid
+
+
+def _read_selected_yes(ws: Worksheet) -> list[tuple[int | str, str, float]]:
+    """Return (cluster_id, kind, freq_hz) for rows with selected=yes."""
+    out: list[tuple[int | str, str, float]] = []
+    for r in range(2, ws.max_row + 1):
+        if str(ws.cell(r, 7).value).strip().lower() != "yes":
+            continue
+        kind = str(ws.cell(r, 2).value).strip()
+        try:
+            freq = float(ws.cell(r, 3).value)
+        except (TypeError, ValueError):
+            continue
+        if freq <= 0:
+            continue
+        out.append((_normalize_cid(ws.cell(r, 1).value), kind, freq))
+    return out
+
+
+def _merge_selected(
+    rows: list[tuple],
+    old_selected: list[tuple[int | str, str, float]],
+) -> list[tuple]:
+    """Preserve selected=yes onto nearest new candidate within 0.5% relative freq."""
+    if not old_selected or not rows:
+        return rows
+    # mutable selected flags parallel to rows
+    flags = ["no"] * len(rows)
+    used: set[int] = set()
+    for cid, kind, f_old in old_selected:
+        best_i: int | None = None
+        best_df = float("inf")
+        for i, row in enumerate(rows):
+            if i in used:
+                continue
+            if _normalize_cid(row[0]) != cid or str(row[1]) != kind:
+                continue
+            f_new = float(row[2])
+            if f_old <= 0:
+                continue
+            if abs(f_new - f_old) / f_old > _SELECTED_MATCH_REL:
+                continue
+            df = abs(f_new - f_old)
+            if df < best_df:
+                best_df = df
+                best_i = i
+        if best_i is not None:
+            flags[best_i] = "yes"
+            used.add(best_i)
+    merged: list[tuple] = []
+    for row, sel in zip(rows, flags):
+        merged.append((*row[:6], sel))
+    return merged
+
+
 def _write_class_mean(
     ws: Worksheet,
     freqs: list[float],
@@ -249,12 +364,18 @@ def _peaks_for_angle(
                 min_octave=min_octave,
             )
             for idx, amp, prom in extrema:
+                q = _compute_q(mean, band_freqs, idx, kind)
                 candidate_rows.append(
-                    (cid, kind, band_freqs[idx], amp, "N/A", prom, "no")
+                    (cid, kind, band_freqs[idx], amp, q, prom, "no")
                 )
 
     mean_name = f"class_mean_{tag}"
     cand_name = f"peak_candidates_{tag}"
+    old_selected: list[tuple[int | str, str, float]] = []
+    if cand_name in wb.sheetnames:
+        old_selected = _read_selected_yes(wb[cand_name])
+    candidate_rows = _merge_selected(candidate_rows, old_selected)
+
     _write_class_mean(_replace_sheet(wb, mean_name), band_freqs, col_names, means)
     _write_peak_candidates(_replace_sheet(wb, cand_name), candidate_rows)
     return 0
