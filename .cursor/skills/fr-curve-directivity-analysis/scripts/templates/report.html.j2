@@ -51,8 +51,16 @@
     </div>
   </section>
 
+  <section class="section section-keep" id="trend">
+    <h2>5. 走势分析</h2>
+    {% if trend_notes_html %}
+    {{ trend_notes_html | safe }}
+    {% endif %}
+    {{ trend_html | safe }}
+  </section>
+
   <section class="section section-keep" id="conclusion">
-    <h2>5. 结论</h2>
+    <h2>6. 结论</h2>
     {{ conclusion_html | safe }}
   </section>
 </body>

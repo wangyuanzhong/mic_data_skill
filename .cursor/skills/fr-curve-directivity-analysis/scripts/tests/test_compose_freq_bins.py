@@ -8,8 +8,10 @@ import pytest
 
 from compose_html import compose_report_html
 from conftest import build_angle_workbook, write_params
+from run_cluster import main as run_cluster_main
 from run_deltas import main as run_deltas_main
 from run_freq_bins import main as run_freq_bins_main
+from run_peaks import main as run_peaks_main
 
 
 def _prep(tmp_path: Path, *, focus_freqs) -> Path:
@@ -20,7 +22,13 @@ def _prep(tmp_path: Path, *, focus_freqs) -> Path:
         angles=["axis", "90"],
         axial_angle="axis",
         sample_count=2,
-        extra={"focus_freqs": focus_freqs},
+        extra={
+            "focus_freqs": focus_freqs,
+            "cluster_k_max": 5,
+            "peak_prominence_db": 0.5,
+            "peak_min_octave": 0.1,
+            "peak_include_q": True,
+        },
     )
     build_angle_workbook(
         out / "process.xlsx",
@@ -34,6 +42,8 @@ def _prep(tmp_path: Path, *, focus_freqs) -> Path:
     )
     run_deltas_main(["--params", str(out / "params.json")])
     run_freq_bins_main(["--params", str(out / "params.json")])
+    run_cluster_main(["--params", str(out / "params.json")])
+    run_peaks_main(["--params", str(out / "params.json")])
     return out
 
 

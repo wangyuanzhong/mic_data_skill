@@ -37,6 +37,7 @@ def write_note_files(
     intro_note: str = "",
     deltas_note: str = "",
     consistency_note: str = "",
+    trend_note: str = "",
     conclusion_note: str = "",
 ) -> Path:
     sec = Path(output_dir) / "report_sections"
@@ -45,6 +46,7 @@ def write_note_files(
         "intro_note.txt": intro_note,
         "deltas_note.txt": deltas_note,
         "consistency_note.txt": consistency_note,
+        "trend_note.txt": trend_note,
         "conclusion_note.txt": conclusion_note,
     }
     for name, text in mapping.items():
@@ -161,6 +163,113 @@ def build_freq_bins_html(output_dir: Path, params: dict) -> str:
     return body
 
 
+def _figure_block(src: str, caption: str) -> str:
+    return (
+        '<div class="figure">'
+        f'<img src="{html.escape(src)}" alt="{html.escape(caption)}" />'
+        f'<div class="caption">{html.escape(caption)}</div>'
+        "</div>"
+    )
+
+
+def build_trend_html(output_dir: Path, params: dict) -> str:
+    """Render 走势分析 body (no h2): cluster table, class-mean fig, peaks, overlays.
+
+    Raises SystemExit(2) if a required cluster_final_* or peak_candidates_* sheet
+    is missing for any non-axial angle.
+    """
+    angles = params.get("angles") or []
+    axial = params.get("axial_angle") or ""
+    xlsx_path = Path(output_dir) / "process.xlsx"
+    if not xlsx_path.is_file():
+        raise SystemExit(2)
+    wb = load_workbook(xlsx_path)
+    figures_dir = Path(output_dir) / "figures"
+
+    body = ""
+    for angle in angles:
+        if angle == axial:
+            continue
+        tag = normalize_angle_tag(angle)
+        final_name = f"cluster_final_{tag}"
+        cand_name = f"peak_candidates_{tag}"
+        if final_name not in wb.sheetnames or cand_name not in wb.sheetnames:
+            raise SystemExit(2)
+
+        body += f'<h3>角度 {html.escape(str(angle))}</h3>'
+
+        # classification table from cluster_final
+        ws_f = wb[final_name]
+        body += '<table class="trend-cluster"><thead><tr>'
+        body += "".join(
+            f"<th>{html.escape(h)}</th>" for h in ("样机", "类", "类名")
+        )
+        body += "</tr></thead><tbody>"
+        for r in range(2, ws_f.max_row + 1):
+            sample = ws_f.cell(r, 1).value
+            if sample is None or str(sample).strip() == "":
+                continue
+            cid = ws_f.cell(r, 2).value
+            cname = ws_f.cell(r, 3).value
+            body += (
+                "<tr>"
+                f"<td>{html.escape(str(sample))}</td>"
+                f"<td>{html.escape(str(cid if cid is not None else ''))}</td>"
+                f"<td>{html.escape(str(cname if cname is not None else ''))}</td>"
+                "</tr>"
+            )
+        body += "</tbody></table>"
+
+        # class-mean figure
+        mean_name = f"走势_类均值_{tag}.png"
+        if (figures_dir / mean_name).is_file():
+            src = (Path("figures") / mean_name).as_posix()
+            body += _figure_block(src, Path(mean_name).stem)
+
+        # peak table: selected=yes only
+        ws_p = wb[cand_name]
+        headers = [ws_p.cell(1, c).value for c in range(1, ws_p.max_column + 1)]
+        try:
+            sel_idx = headers.index("selected") + 1
+        except ValueError:
+            sel_idx = 7
+        selected_rows: list[list] = []
+        for r in range(2, ws_p.max_row + 1):
+            if ws_p.cell(r, 1).value is None:
+                continue
+            sel = str(ws_p.cell(r, sel_idx).value or "").strip().lower()
+            if sel != "yes":
+                continue
+            selected_rows.append(
+                [
+                    ws_p.cell(r, 1).value,  # cluster_id
+                    ws_p.cell(r, 2).value,  # kind
+                    ws_p.cell(r, 3).value,  # freq_hz
+                    ws_p.cell(r, 4).value,  # amplitude_db
+                    ws_p.cell(r, 5).value,  # q
+                ]
+            )
+        if selected_rows:
+            peak_headers = ("类", "类型", "中心频率", "幅度", "Q")
+            body += '<table class="trend-peaks"><thead><tr>'
+            body += "".join(f"<th>{html.escape(h)}</th>" for h in peak_headers)
+            body += "</tr></thead><tbody>"
+            for row in selected_rows:
+                body += "<tr>"
+                for v in row:
+                    body += f"<td>{html.escape(str(v if v is not None else ''))}</td>"
+                body += "</tr>"
+            body += "</tbody></table>"
+
+        # class overlay figures
+        overlays = sorted(figures_dir.glob(f"走势_类内叠图_{tag}_类*.png"))
+        for p in overlays:
+            src = (Path("figures") / p.name).as_posix()
+            body += _figure_block(src, p.stem)
+
+    return body
+
+
 def _verify_report_html(html_path: Path, params: dict) -> None:
     """Spec §6.2 L3 checks. Raise ValueError on failure."""
     focus_freqs = params.get("focus_freqs") or []
@@ -216,6 +325,7 @@ def compose_report_html(
     intro_note: str = "",
     deltas_note: str = "",
     consistency_note: str = "",
+    trend_note: str = "",
     conclusion_note: str = "",
     figures_dir: Path | None = None,
     persist_notes: bool = True,
@@ -227,6 +337,7 @@ def compose_report_html(
             intro_note=intro_note,
             deltas_note=deltas_note,
             consistency_note=consistency_note,
+            trend_note=trend_note,
             conclusion_note=conclusion_note,
         )
     figures_dir = Path(figures_dir) if figures_dir else output_dir / "figures"
@@ -249,6 +360,8 @@ def compose_report_html(
     consistency_notes_html = _as_note_html(consistency_note)
     freq_bins_html = build_freq_bins_html(output_dir, params)
     consistency_summary_html = build_consistency_summary_html(output_dir)
+    trend_notes_html = _as_note_html(trend_note)
+    trend_html = build_trend_html(output_dir, params)
     conclusion_html = _as_note_html(conclusion_note) or "<p></p>"
 
     tpl_dir = Path(__file__).resolve().parent / "templates"
@@ -268,6 +381,8 @@ def compose_report_html(
         consistency_notes_html=consistency_notes_html,
         consistency_summary_html=consistency_summary_html,
         consistency_figures=consistency_blocks,
+        trend_notes_html=trend_notes_html,
+        trend_html=trend_html,
         conclusion_html=conclusion_html,
     )
     out = output_dir / "report.html"
@@ -289,6 +404,7 @@ def main() -> None:
     p.add_argument("--intro-note", default="")
     p.add_argument("--deltas-note", default="")
     p.add_argument("--consistency-note", default="")
+    p.add_argument("--trend-note", default="")
     p.add_argument("--conclusion-note", default="")
     args = p.parse_args()
 
@@ -297,6 +413,7 @@ def main() -> None:
         intro_note=args.intro_note,
         deltas_note=args.deltas_note,
         consistency_note=args.consistency_note,
+        trend_note=args.trend_note,
         conclusion_note=args.conclusion_note,
     )
     print(f"OK wrote {path}")
