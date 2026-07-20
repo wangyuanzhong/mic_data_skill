@@ -1,5 +1,7 @@
 # mic-fr Skills 包：相对「最正规完整 Skill」缺口清单
 
+> **已被取代：** 见 [`2026-07-20-skills-package-19-issues-risk.md`](2026-07-20-skills-package-19-issues-risk.md) 获取当前审计结论。本文仅保留作历史记录；文中「C 未建」「包 README 过时」等发现均已在后续提交中解决，勿再按本文内容继续开发。
+
 **日期:** 2026-07-17  
 **仓库:** `mic_data_skill`  
 **包位置:** `.cursor/skills/`  
