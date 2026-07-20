@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
 from openpyxl import Workbook
+
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 FREQS = [100.0, 500.0, 1000.0, 5000.0, 10000.0]
