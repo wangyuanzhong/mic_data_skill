@@ -10,6 +10,7 @@ Cursor Agent Skills：麦克风 / 音箱等电声产品的**频响（FR）曲线
 |-------|------|
 | [fr-curve-golden-analysis](.cursor/skills/fr-curve-golden-analysis/SKILL.md) | 测量文件夹 → 探查、标准化、灵敏度/曲线金标与过程记录 |
 | [fr-curve-measurement-report](.cursor/skills/fr-curve-measurement-report/SKILL.md) | 已有 `params.json` + `process.xlsx` → 出图并生成 `report.html` / `report.pdf` |
+| [fr-curve-directivity-analysis](.cursor/skills/fr-curve-directivity-analysis/SKILL.md) | 多角度频响（文件名区分角度）→ 角向−轴向差值、同角度一致性、走势分类、本 Skill 内正式报告 |
 
 入口说明见 [.cursor/skills/README.md](.cursor/skills/README.md)。
 
@@ -46,6 +47,9 @@ pytest .cursor/skills/fr-curve-golden-analysis/scripts/tests -q
 
 # 报告侧
 pytest .cursor/skills/fr-curve-measurement-report/scripts/tests -q -m "not integration"
+
+# 指向性侧
+pytest .cursor/skills/fr-curve-directivity-analysis/scripts/tests -q
 ```
 
 ## 文档
