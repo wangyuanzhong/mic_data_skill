@@ -185,7 +185,7 @@ Agent **只在这一步**写出宽表；分析 sheet 留给脚本，不要手建
 
 频率网格不一致时先对齐到统一频率列，并在本步 md 里写明做法。聊天只报：已生成、几行几列、几个样机。
 
-### 2.3 立刻把核对写入 [process.md](http://process.md)
+### 2.3 立刻把核对写入 process.md
 
 xlsx 一写完，按同一 [references/fill-02-params.md](references/fill-02-params.md) 补「标准化说明 + 核对」。对不上 → 先修宽表再往下。
 
