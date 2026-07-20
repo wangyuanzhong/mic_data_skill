@@ -1,31 +1,19 @@
-# 步骤0：process.md 总骨架
+# 步骤0：process.md 骨架（A 选标）
 
-建文件时整份照抄进**产出目录**的 `process.md`（未做到的章正文可空）。之后只改对应标题，不另起文档。  
-同一步：复制 [params.template.json](params.template.json) → `params.json` 并填本步已收齐字段。
+公共版式真源：[`../../shared/references/fill-00-skeleton.md`](../../shared/references/fill-00-skeleton.md)
 
-**产出目录位置：** 与分析根目录同级（分析根的父目录下），名 `<产品>_<YYYYMMDD_HHMMSS>`；禁止建在仓库/skill 的 `output/`。  
-相对分析根可写：`../<产品>_<时间>/`
+A 选标按公共骨架填入 `process.md`，并追加下列 **A 专有章**（步骤3 由脚本写入）：
 
 ```markdown
-# 过程记录 · {产品} · {说明或省略}
-
-- 数据根目录：{分析根绝对路径或相对说明}
-- 输出目录：../<产品>_<时间>/（与分析根同级；亦可写绝对路径）
-- 幅度单位：{如 dBV / dB SPL / dB}
-- 曲线分析频段：{下限}–{上限} Hz（默认 100–15000；用户改过则写用户值）
-- 参数文件：params.json（脚本传参；本 md 仅日志）
-
-## 探查结论          ← 步骤1 填
-### 映射摘要表
-### 预览
-
-## 标准化与脚本入参    ← 步骤2 填（日志）
-
 ## 灵敏度分析          ← 步骤3 由脚本写入
-
 ## 奇异值分析          ← 步骤3 由脚本写入；确认后脚本再补「用户决定」
-
 ## 曲线分析            ← 步骤3 确认剔异后由脚本写入
-
-## 运行说明
 ```
+
+## A 默认频段
+
+`f_lo_hz=100`, `f_hi_hz=15000`（强制不主动问；用户主动提才改）。
+
+## params 模板
+
+A 的 [`params.template.json`](params.template.json) 基于 shared base + A 专有字段（`sensitivity.*` / `curves.*`）。

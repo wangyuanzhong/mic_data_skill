@@ -87,3 +87,18 @@ def test_sigma_ylim_non_negative():
     assert lo >= 0.0 - 1e-12
     assert hi >= 0.5
     plt.close(fig)
+
+
+def test_setup_log_freq_axis_span_and_y_grid():
+    from plot_style import setup_log_freq_axis
+
+    fig, ax = plt.subplots()
+    setup_log_freq_axis(ax)
+    lo, hi = ax.get_xlim()
+    assert abs(lo - REPORT_F_MIN_HZ) / REPORT_F_MIN_HZ < 0.05
+    assert abs(hi - REPORT_F_MAX_HZ) / REPORT_F_MAX_HZ < 0.05
+    # horizontal grid on (major)
+    assert ax.yaxis._major_tick_kw.get("gridOn", False) or any(
+        line.get_visible() for line in ax.get_ygridlines()
+    )
+    plt.close(fig)

@@ -30,6 +30,12 @@ from openpyxl.worksheet.worksheet import Worksheet  # noqa: E402
 
 from angle_sheets import normalize_angle_tag, read_angle_sheet  # noqa: E402
 from params_io import load_params, resolve_under_output  # noqa: E402
+from plot_style import (  # noqa: E402
+    REPORT_F_MAX_HZ,
+    REPORT_F_MIN_HZ,
+    draw_analysis_band,
+    setup_log_freq_axis,
+)
 from utf8_boot import ensure_utf8_stdio  # noqa: E402
 
 
@@ -42,17 +48,6 @@ def _prepare_curve(freqs: list[float], vals: list[float | None]):
         xs.append(float(f))
         ys.append(float(v))
     return xs, ys
-
-
-def _setup_log_freq_axis(ax, f_min: float, f_max: float) -> None:
-    ax.set_xscale("log")
-    ax.set_xlim(f_min, f_max)
-    ax.grid(True, which="both", linestyle=":", linewidth=0.4, alpha=0.6)
-
-
-def _draw_analysis_band(ax, f_lo: float, f_hi: float) -> None:
-    ax.axvline(f_lo, color="red", linestyle="--", linewidth=0.8, alpha=0.7)
-    ax.axvline(f_hi, color="red", linestyle="--", linewidth=0.8, alpha=0.7)
 
 
 def _save_fig(fig, path: Path) -> Path:
@@ -189,9 +184,8 @@ def _plot_class_means(
             linewidths=0.4,
         )
 
-    if freqs:
-        _setup_log_freq_axis(ax, min(freqs) * 0.5, max(freqs) * 2)
-    _draw_analysis_band(ax, f_lo, f_hi)
+    setup_log_freq_axis(ax, REPORT_F_MIN_HZ, REPORT_F_MAX_HZ)
+    draw_analysis_band(ax, f_lo, f_hi)
     ax.set_ylabel("角向 − 轴向 (dB)")
     ax.set_title(f"{angle} 类均值走势")
     if len(col_names) <= 12:
@@ -227,10 +221,8 @@ def _plot_class_overlay(
             linestyle="--",
             label=f"{mean_label}(均值)",
         )
-    all_fs = list(freqs) + list(mean_freqs)
-    if all_fs:
-        _setup_log_freq_axis(ax, min(all_fs) * 0.5, max(all_fs) * 2)
-    _draw_analysis_band(ax, f_lo, f_hi)
+    setup_log_freq_axis(ax, REPORT_F_MIN_HZ, REPORT_F_MAX_HZ)
+    draw_analysis_band(ax, f_lo, f_hi)
     ax.set_ylabel("角向 − 轴向 (dB)")
     ax.set_title(f"{angle} 类{cid} 类内叠图")
     if len(sample_names) <= 12:

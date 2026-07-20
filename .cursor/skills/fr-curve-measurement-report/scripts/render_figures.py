@@ -270,25 +270,15 @@ def render_all_figures(
             if s is None:
                 if xs:
                     xf, ys_s = prepare_curve_for_display(xs, ys)
-                    ax.fill_between(
-                        xf, ys_s, 0, color=(120 / 255, 200 / 255, 240 / 255, 0.18)
-                    )
-                    ax.plot(
-                        xf,
-                        ys_s,
-                        color=(70 / 255, 150 / 255, 210 / 255, 0.92),
-                        linewidth=1.8,
-                    )
+                    # Line only (no under-curve fill / glow); match directivity σ style
+                    ax.plot(xf, ys_s, linewidth=1.2)
                     xs, ys = [], []
                 continue
             xs.append(f)
             ys.append(s)
         if xs:
             xf, ys_s = prepare_curve_for_display(xs, ys)
-            ax.fill_between(xf, ys_s, 0, color=(120 / 255, 200 / 255, 240 / 255, 0.18))
-            ax.plot(
-                xf, ys_s, color=(70 / 255, 150 / 255, 210 / 255, 0.92), linewidth=1.8
-            )
+            ax.plot(xf, ys_s, linewidth=1.2)
         _apply_freq_axis(ax, freqs, f_lo, f_hi)
         ax.set_ylabel("σ (dB)")
         ax.set_title("批量一致性 σ(f)")

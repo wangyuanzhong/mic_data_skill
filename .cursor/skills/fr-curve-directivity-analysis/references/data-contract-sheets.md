@@ -6,7 +6,8 @@
 
 ## 角度宽表（步骤2，Agent 写）
 
-每个角度一张 sheet，sheet 名 = `normalize_angle_tag(angle)`（如 `axis` / `90` / `180`；`90°`→`90`）。
+每个角度一张 sheet，sheet 名 = `normalize_angle_tag(angle)` / `angle_sheet_name(angle)`（如 `axis` / `90` / `180`；`90°`→`90`）。  
+`params.angles` / `axial_angle` 可保留带 `°` 的显示标签；**脚本读宽表时一律用规范化名查找**（`run_deltas.py` 等），不要用 params 原文当 sheet 名。
 
 | 位置 | 内容 |
 |------|------|

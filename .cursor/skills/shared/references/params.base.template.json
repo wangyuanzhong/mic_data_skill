@@ -1,0 +1,11 @@
+{
+  "product": "",
+  "note": "",
+  "data_root": "",
+  "output_dir": "",
+  "unit": "",
+  "f_lo_hz": null,
+  "f_hi_hz": null,
+  "process_xlsx": "process.xlsx",
+  "process_md": "process.md"
+}

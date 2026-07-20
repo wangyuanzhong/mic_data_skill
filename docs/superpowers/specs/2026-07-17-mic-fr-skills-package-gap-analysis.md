@@ -315,3 +315,4 @@ Phase 4  验收与发布姿态
 | 日期 | 说明 |
 |------|------|
 | 2026-07-17 | 初稿：对照 agentskills.io + 三 Skill 包目标，基于当前仓库盘点 |
+| 2026-07-18 | `data-contract.md` 从选标 references **迁至**报告 Skill `references/`（消费者刚需）；包 README 增加维护者同步约定。下文 §3.2 / §8 若仍写「在 A」以本条为准。 |

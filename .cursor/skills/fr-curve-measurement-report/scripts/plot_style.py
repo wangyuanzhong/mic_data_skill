@@ -78,7 +78,8 @@ def setup_log_freq_axis(
     """
     Log frequency axis fixed to report span (default 20–20000 Hz):
     - Labels: full-octave only (no sci notation)
-    - Grid: octave = stronger; 1/3-octave = thinner/lighter (no labels)
+    - Vertical grid: octave = stronger; 1/3-octave = thinner/lighter (no labels)
+    - Horizontal grid: major + minor dotted lines (same spirit as directivity plots)
     Analysis-band limits are NOT ticks — draw them separately with draw_analysis_band.
     """
     ax.set_xscale("log")
@@ -95,6 +96,11 @@ def setup_log_freq_axis(
         ax.axvline(t, color="0.88", linewidth=0.45, zorder=0)
     for t in octaves:
         ax.axvline(t, color="0.55", linewidth=0.95, zorder=0)
+
+    # Horizontal grid only (x already drawn via octave / 1/3 axvline above)
+    ax.minorticks_on()
+    ax.yaxis.grid(True, which="major", linestyle=":", linewidth=0.4, alpha=0.6, zorder=0)
+    ax.yaxis.grid(True, which="minor", linestyle=":", linewidth=0.3, alpha=0.45, zorder=0)
 
     ax.xaxis.set_major_locator(FixedLocator(octaves))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _pos: format_hz(v)))

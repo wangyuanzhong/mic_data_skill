@@ -29,6 +29,7 @@ SOP：
 2. **传参真源是** `params.json`（模板 [references/params.template.json](references/params.template.json)）。`process.md` 只作过程日志，不负责传参；禁止从 md 拼命令行。
 3. `process.md`：步骤0创建；步骤1/2 人工填空；步骤3 分析章由脚本改写。禁止算完再手补分析章。
 4. 闸门：0 有骨架+params → 1 有探查结论 → 2 有 params+xlsx 核对 → 3 脚本后 md 章已更新 → 短结。
+5. **与指向性（C）同批时禁止并行**：若用户同时要选标与指向性（或同时挂载两 Skill），必须先完整完成本 Skill（含步骤3奇异值确认与曲线第二阶段；若还要正式选标报告则再跑完 `fr-curve-measurement-report`），**全部结束后**才允许开始 C 步骤0。禁止两边穿插建目录/探查/写表；禁止本 Skill 卡在等确认时去推进 C。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
 
 **交付物：**
 
