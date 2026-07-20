@@ -112,11 +112,11 @@
 
 ### 10. 静态模板没有按 `assets/` 语义归类
 
-- [ ] **性质:** **官方建议，不是规范违规。** Specification 明确 `assets/` 可选，也允许其它目录；但它把“templates, resources”归到 `assets/`。当前放法不会导致 validate 失败。
-- **问题:** B/C 的 `report.html.j2`、`report.css` 是输出模板却放在 `scripts/templates/`；A/C 的 `params.template.json` 也是待复制模板，却放在 `references/`。目录语义不清。
-- **修法:** 报告模板迁到各 Skill 的 `assets/templates/`；params 模板迁到各自 `assets/`。与第 12 条一起处理，避免迁完仍依赖 Skill 根外的 shared 模板。
-- **风险: 中。** 这是全清单里唯一真正动运行时代码路径的一条。漏改任何一处则组版直接挂。兜底：B、C 都有 compose 冒烟测试，迁完全量跑一遍即可放心；建议单独一个 PR，别和其他条混。
-- **验证:** B/C 组版测试、HTML 冒烟、params 模板复制路径测试全部通过。
+- [x] **已修复（2026-07-20，分支 `cursor/skills-assets-migration-fafc`）。性质:** **官方建议，不是规范违规。** Specification 明确 `assets/` 可选，也允许其它目录；但它把“templates, resources”归到 `assets/`。当前放法不会导致 validate 失败。
+- **问题:** B/C 的 `report.html.j2`、`report.css` 是输出模板却放在 `scripts/templates/`。目录语义不清。（原文提到"A/C 的 `params.template.json` 也待迁"——已决定不做，params 模板留在 `references/`，见第 17 条历史决定；本条只处理报告模板。）
+- **修法:** 报告模板迁到 B、C 各自的 `assets/templates/`；两个 `compose_html.py` 的 `tpl_dir` 各改一行（`parent / "templates"` → `parent.parent / "assets" / "templates"`）；两份 SKILL.md 里所有"改排版只改 `scripts/templates/`"的字句同步改成 `assets/templates/`。
+- **风险: 中（已实现，已验证）。** 这是全清单里唯一真正动运行时代码路径的一条。
+- **验证:** 迁移前跑 B（含 integration 标记，实测 Playwright PDF 生成）+ C 全套测试作基线；迁移后代码未跟上时先复现 RED（`FileNotFoundError: report.css`）；改完两行代码后 B 34 passed + C 66 passed + A 23 passed（未受影响）+ 跨 Skill parity 4 passed；另外手动用 CLI 命令（不经 pytest）各跑一遍 B、C 的出图→组版 HTML→转 PDF 全链路，产出真实 `report.pdf`（B 930KB / C 396KB，PDF 头校验通过）；`skills-ref validate` 两个 Skill 均 `Valid skill`；全仓 markdown 链接校验 0 断链。
 
 ### 11. 运行环境要求没有进入 `compatibility`
 
@@ -126,12 +126,9 @@
 - **风险: 低。** YAML 写坏会导致 Skill 加载失败。
 - **验证:** `skills-ref validate` + Cursor 中确认三个 Skill 仍可发现。
 
-### 12. A / C 依赖 Skill 根目录外的 `shared/`
+### 12. （已决定不做，内容已删除）
 
-- [ ] **问题:** A/C 的 SKILL.md 和本地 reference 使用 `../shared/`、`../../shared/`。整包在 Cursor 仓库里能用，但单独复制、上传或发布一个 Skill 时会断。Specification 的可移植单元是一个 Skill 目录，文件引用应从 Skill 根出发。
-- **修法:** 分发产物必须自包含。推荐把公共 reference/materialize 到 A、C 各自目录，并用包级同步脚本或 parity 测试保证副本一致；不要让运行中的 Skill 跨根读取 shared。
-- **风险: 中。** 会改多处链接、模板来源和安装姿态。
-- **验证:** 分别只拷 A、只拷 C 到临时 skills 目录；链接校验和步骤 0–1 冒烟均通过。
+**决定（2026-07-20）：** 不改。A/C 继续依赖 Skill 根目录外的 `shared/`；本包不追求单 Skill 可独立分发，暂不为此重构公共 reference。
 
 ### 13. 没有 Agent 级 eval，只测了 Python
 
@@ -210,7 +207,7 @@
 - **修法:** A 的 SKILL.md 只保留步骤目标、A 专有默认和硬闸门，并**直接**链接 A 根内的 `references/intake-confirm.md`。该本地文件可由包级源生成，但运行时不得跨 Skill 根。
 - **收益:** 约 20–25 行；主流程更易扫读。
 - **风险: 中。** Agent 若没打开 reference，会漏确认项。
-- **前置/验证:** 先完成 12、13；用旧版对照新版跑 A 步骤 0 eval，确认所有必问项、C 意向和默认值都出现。
+- **前置/验证:** 先完成 13；用旧版对照新版跑 A 步骤 0 eval，确认所有必问项、C 意向和默认值都出现。
 
 ### 瘦2. A 的探查套路移到本地 reference
 
@@ -228,11 +225,9 @@
 - **风险: 低。** 核心禁令仍内联。
 - **验证:** A+C、A+B+C、仅 C 三个流程 eval 都通过。
 
-### 瘦4. C 的命令块合并（评估后不建议做）
+### 瘦4. （已决定不做，内容已删除）
 
-- [ ] **现状:** C 有多段相似命令，表面上可再省约 30 行。
-- **判断:** **不做。** 每条命令的脚本名、顺序、产出和失败条件不同；显式写出可降低 Agent 拼错命令的概率。这里的重复换来了低自由度，符合官方“脆弱任务要更具体”的建议。
-- **风险:** 若强行合并为模板，回归风险为中；Agent 要自行拼命令，收益可能为负。
+**决定（2026-07-20）：** 不改。C 的多段相似命令块保持原样，不合并成模板。
 
 ### 明确不瘦
 
@@ -249,9 +244,10 @@
 | 1 | 1、2、3、4、5、6（文档步）、19 | 已验证缺陷；极低到低风险 | ✅ 已完成（2026-07-20） |
 | 2 | 7、9、13、18 | 先建立脚本测试、CI、Agent eval、格式校验 | ✅ 已完成（2026-07-20） |
 | 3 | 8、11、14、15、17 | 不改目录边界的正规化；低风险 | ✅ 已完成（2026-07-20） |
-| 4 | 10 + 12 | assets 归位与 Skill 自包含一起设计；中风险、单独 PR | 未做 |
-| 5 | 16 = 瘦1 + 瘦2 + 瘦3 | 必须在 12、13 后；一次只瘦一项并对照 eval | 未做（13 已完成，12 未做） |
-| 可选 | 6(代码步：C 补 file 参数)、瘦4 | 瘦4 默认不做 | 6 代码步已完成；瘦4 不做 |
+| 4 | 10 | assets 归位；中风险 | ✅ 已完成（2026-07-20，分支 `cursor/skills-assets-migration-fafc`） |
+| 5 | 16 = 瘦1 + 瘦2 + 瘦3 | 必须在 13 后；一次只瘦一项并对照 eval | 未做（13 已完成；先留着，暂不排期） |
+| 已取消 | 12、瘦4 | 决定不做，内容已从文档删除 | 已取消（2026-07-20） |
+| 可选 | 6(代码步：C 补 file 参数) | 已随批次 1 完成 | ✅ 已完成 |
 
 ---
 
@@ -263,3 +259,4 @@
 | 2026-07-20 | 增瘦身专项：第 16 条拆为瘦1–瘦4 并逐条评估风险；批次表同步 |
 | 2026-07-20 | 第一性原理复核：区分强制规范/官方建议；纠正 assets、description、SDD 报告三处判断；补自包含与 Agent eval 缺口；重做瘦身原则和批次顺序 |
 | 2026-07-20 | 批次 1–3 全部落地：条目 1、2、3、4、5、6、7、8、9、11、13、14、15、17、18、19 已修复并勾选（分支 `cursor/skills-low-risk-fixes-fafc`，计划见 [`../plans/2026-07-20-low-and-very-low-risk-fixes.md`](../plans/2026-07-20-low-and-very-low-risk-fixes.md)）。条目 10、12、16（含瘦1–瘦3）仍是中风险，本轮未做，留给单独 PR。 |
+| 2026-07-20 | 条目 10（assets 迁移）落地（分支 `cursor/skills-assets-migration-fafc`）：迁移前后各跑一遍 B/C 全套测试 + 手动 CLI 端到端验证（真实产出 report.pdf）+ `skills-ref validate`，均通过。条目 12 与瘦4 按决定不做，正文内容已删除，只保留墓碑说明；批次表同步。条目 16（瘦1–瘦3）按要求先留着，未改动。 |
