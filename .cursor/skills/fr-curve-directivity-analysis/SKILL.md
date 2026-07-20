@@ -8,6 +8,10 @@ description: >-
   Do not use for golden/auxiliary standard selection (that is
   fr-curve-golden-analysis) or for the standard (non-directivity)
   measurement report (that is fr-curve-measurement-report).
+compatibility: >-
+  Requires Python 3.10+ with openpyxl, matplotlib, jinja2, numpy, scipy, and
+  playwright (run "playwright install chromium" once before generating
+  report.pdf).
 ---
 
 # 频响指向性分析

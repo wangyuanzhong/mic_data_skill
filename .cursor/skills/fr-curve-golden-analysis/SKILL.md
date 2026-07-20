@@ -5,6 +5,9 @@ description: >-
   curve golden/auxiliary standards, bin absolute sensitivity in 0.5dB steps,
   or run outlier review on SPL/XLS/CSV curve data. Do not use for writing the
   formal measurement report (that is fr-curve-measurement-report).
+compatibility: >-
+  Requires Python 3.10+ with openpyxl. Reads and writes an analysis output
+  directory sibling to the measurement data folder.
 ---
 
 # 频响曲线金标分析

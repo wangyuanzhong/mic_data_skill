@@ -5,6 +5,9 @@ description: >-
   curve figures from an existing analysis output folder that already has
   params.json and process.xlsx after fr-curve-golden-analysis. Do not use for
   selecting golden/auxiliary standards or running FR analysis.
+compatibility: >-
+  Requires Python 3.10+ with openpyxl, matplotlib, jinja2, and playwright
+  (run "playwright install chromium" once before generating report.pdf).
 ---
 
 # 频响测量正式报告
