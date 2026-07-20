@@ -161,12 +161,10 @@ python <本Skill根目录>/scripts/compose_html.py --output-dir <产出目录>
 有白话时（引号内换成 3.1 准备好的原文）：
 
 ```text
-python <本Skill根目录>/scripts/compose_html.py --output-dir <产出目录> ^
-  --intro-note "……" ^
-  --sensitivity-note "……" ^
-  --curves-notes "……" ^
-  --conclusion-note "……"
+python <本Skill根目录>/scripts/compose_html.py --output-dir <产出目录> --intro-note "……" --sensitivity-note "……" --curves-notes "……" --conclusion-note "……"
 ```
+
+**Windows / 长文本可用 `--*-note-file` 代替 `--*-note`：** 每段都有对应的 `--intro-note-file` / `--sensitivity-note-file` / `--curves-notes-file` / `--conclusion-note-file`（还各有一个别名 `--intro-file` / `--sensitivity-file` / `--conclusion-file`），把该段白话先写进一个 UTF-8 文本文件，传文件路径即可，避免把长文本或引号塞进 PowerShell 命令行。同一段若两者都传，文件优先。
 
 **禁止**自己创建或手改产出目录下的 `report_sections/`。  
 **禁止**手写介绍字段表、灵敏度明细、灵敏度分档计数。
