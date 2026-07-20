@@ -11,6 +11,9 @@
 2. **禁止并行 / 穿插**：禁止两边同时建产出目录、同时探查、同时写宽表；禁止 A 卡在「等用户确认」时去推进 C（或反过来）；禁止「一边等确认一边把另一 Skill 跑完」。
 3. A 与 C 产出目录仍**物理隔离**（两个 `<产品>_<时间>/`），但这不等于可以并行开工。
 4. 仅指向性、或仅选标：按各自 SOP，本条不适用。
+5. **开局意向与默认：** 可按 [`shared/references/intake-confirm.md`](shared/references/intake-confirm.md) 在步骤0先收「要不要 C」与频段/关注频点默认；**写 C 宽表 / 跑 C 脚本**仍必须等 A（及若需要的 B）全部结束后。
+6. **未 @ C 但用户说要做指向性：** 视同已挂载 C。
+7. **已 @ C：** 不要再问「要不要做指向性」；探查无离轴则软跳过 C（提示一句），不要再问是否强行做。
 
 ## 角色与触发
 
@@ -19,7 +22,7 @@
 | `shared/`（**非触发 Skill**，无 `SKILL.md`） | A/C 通过相对路径引用公共 intake、探查、角度×文件名确认表等约定 |
 | [`fr-curve-golden-analysis`](fr-curve-golden-analysis/SKILL.md) | 测量文件夹 → 探查、标准化、灵敏度 / 曲线金标与过程记录 |
 | [`fr-curve-measurement-report`](fr-curve-measurement-report/SKILL.md) | 已有选标产出（params + xlsx）→ 正式 `report.html` / `report.pdf` + 曲线图 |
-| [`fr-curve-directivity-analysis`](fr-curve-directivity-analysis/SKILL.md) | 多角度频响（文件名区分角度）→ 角向−轴向差值、同角度一致性、本 Skill 内正式报告 |
+| [`fr-curve-directivity-analysis`](fr-curve-directivity-analysis/SKILL.md) | 多角度频响（文件名区分角度）→ 轴向−角向差值、同角度一致性、本 Skill 内正式报告 |
 
 `shared/` 不是独立 Skill：没有 `description`，不参与触发匹配；只给 A/C 引用。整包安装，不要只拷单个 Skill 却不带 `shared/`。
 
