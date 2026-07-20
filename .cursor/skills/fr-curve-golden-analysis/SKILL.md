@@ -61,9 +61,12 @@ SOP：
 | 产品名       | 没有就问；路径里能合理猜到可先给出请用户确认                |
 | 说明        | **问要不要加**；不要 → 写「无」                   |
 | 幅度单位      | 没有就问；文件头能合理猜到（如 dBV、dB SPL）必须先给出请用户确认 |
-| 曲线分析下限 Hz | **强制不许问**；默认 100；用户主动提才改              |
-| 曲线分析上限 Hz | **强制不许问**；默认 15000；用户主动提才改            |
+| 曲线分析下限 Hz | 默认 100；**必须用户确认**（可改）                    |
+| 曲线分析上限 Hz | 默认 15000；**必须用户确认**（可改）                  |
 
+- 开局确认包：按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) 执行。
+- 若本对话**未**挂载指向性 Skill：必须问「本批要不要做指向性？」；答「要」视同已挂载 C（默认与串行规则见该文件）。
+- 若已挂载指向性：不要在此重复问「要不要」；C 默认确认由 C 步骤0 / 同批开局确认包一并处理。
 
 ### 写文件
 
@@ -79,7 +82,7 @@ SOP：
 1. 按 [references/fill-00-skeleton.md](references/fill-00-skeleton.md) **创建** `process.md`
 2. 复制 [references/params.template.json](references/params.template.json) → `params.json`，填入本步已收齐字段（`product` / `note` / `data_root` / `output_dir` / `unit` / `f_lo_hz` / `f_hi_hz`）。`data_root`、`output_dir` 写清上述路径；其余可先保持模板默认（`curves.exclude` 为 `null`）
 
-硬规则：缺必问项，或尚未创建 `process.md` 与 `params.json` → 不进步骤1。缺什么问什么。
+硬规则：确认包未齐，或缺必问项，或尚未创建 `process.md` 与 `params.json` → 不进步骤1。缺什么问什么。
 
 ## 步骤 1：探查与映射
 
