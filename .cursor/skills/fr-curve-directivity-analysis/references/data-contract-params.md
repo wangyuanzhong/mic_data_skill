@@ -15,14 +15,10 @@
 | `angles` | string[] | 有序角度标签列表（含轴向）；顺序以确认表列头为准 | Agent 步骤2 | 确认后 |
 | `axial_angle` | string | 轴向参考角度标签（必须 ∈ `angles`） | Agent 步骤2 | 确认后 |
 | `sample_count` | number | 序号个数（各角度 sheet 列数） | Agent 步骤2 | 确认后 |
-| `focus_freqs` | number[] | 关注频点 Hz；默认 `[1000]` | Agent 步骤0 | intake |
-| `cluster_k_max` | number | 聚类 k 上限 | 模板默认 | — |
-| `peak_prominence_db` | number | 峰谷 prominence 门槛 | 模板默认 | — |
-| `peak_min_octave` | number | 峰谷最小八度间距 | 模板默认 | — |
-| `peak_include_q` | boolean | 是否输出 Q | 模板默认 | — |
+| `envelope` | object \| null | 包络框；**本 plan 恒为 `null`**；非空格式待后续 plan 定义 | （后续） | — |
 
 ## 与 A 的区别
 
 - A 有 `sensitivity.*` / `curves.aux_count` / `curves.exclude`；C **不写**。
-- C 有 `angles` / `axial_angle` / `sample_count` / `focus_freqs` 等；A **不写**。
+- C 有 `angles` / `axial_angle` / `sample_count` / `envelope`；A **不写**。
 - 默认频段不同：A `100/15000`；C `250/20000`。

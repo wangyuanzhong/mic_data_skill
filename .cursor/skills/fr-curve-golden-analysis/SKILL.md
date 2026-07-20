@@ -29,7 +29,7 @@ SOP：
 2. **传参真源是** `params.json`（模板 [references/params.template.json](references/params.template.json)）。`process.md` 只作过程日志，不负责传参；禁止从 md 拼命令行。
 3. `process.md`：步骤0创建；步骤1/2 人工填空；步骤3 分析章由脚本改写。禁止算完再手补分析章。
 4. 闸门：0 有骨架+params → 1 有探查结论 → 2 有 params+xlsx 核对 → 3 脚本后 md 章已更新 → 短结。
-5. **与指向性（C）同批时禁止并行**：若用户同时要选标与指向性（或同时挂载两 Skill），必须先完整完成本 Skill（含步骤3奇异值确认与曲线第二阶段；若还要正式选标报告则再跑完 `fr-curve-measurement-report`），**全部结束后**才允许开始 C 步骤0。禁止两边穿插建目录/探查/写表；禁止本 Skill 卡在等确认时去推进 C。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
+5. **与指向性（C）同批时禁止并行**：若用户同时要选标与指向性（或同时挂载两 Skill），必须先完整完成本 Skill（含步骤3奇异值确认与曲线第二阶段；若还要正式选标报告则再跑完 `fr-curve-measurement-report`），**全部结束后**才允许写 C 宽表 / 跑 C 脚本 / 建 C 产出目录。开局意向与 C 默认可按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) 在 A 步骤0（或同批开局确认包）同期收；禁止在等 A 确认空档建 C 产出目录、写 C 宽表或跑 C 脚本。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
 
 **交付物：**
 
@@ -61,9 +61,12 @@ SOP：
 | 产品名       | 没有就问；路径里能合理猜到可先给出请用户确认                |
 | 说明        | **问要不要加**；不要 → 写「无」                   |
 | 幅度单位      | 没有就问；文件头能合理猜到（如 dBV、dB SPL）必须先给出请用户确认 |
-| 曲线分析下限 Hz | **强制不许问**；默认 100；用户主动提才改              |
-| 曲线分析上限 Hz | **强制不许问**；默认 15000；用户主动提才改            |
+| 曲线分析下限 Hz | 默认 100；**必须用户确认**（可改）                    |
+| 曲线分析上限 Hz | 默认 15000；**必须用户确认**（可改）                  |
 
+- 开局确认包：按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) 执行。
+- 若本对话**未**挂载指向性 Skill：必须问「本批要不要做指向性？」；答「要」视同已挂载 C（默认与串行规则见该文件）。
+- 若已挂载指向性：不要在此重复问「要不要」；C 默认确认由 C 步骤0 / 同批开局确认包一并处理。
 
 ### 写文件
 
@@ -79,7 +82,7 @@ SOP：
 1. 按 [references/fill-00-skeleton.md](references/fill-00-skeleton.md) **创建** `process.md`
 2. 复制 [references/params.template.json](references/params.template.json) → `params.json`，填入本步已收齐字段（`product` / `note` / `data_root` / `output_dir` / `unit` / `f_lo_hz` / `f_hi_hz`）。`data_root`、`output_dir` 写清上述路径；其余可先保持模板默认（`curves.exclude` 为 `null`）
 
-硬规则：缺必问项，或尚未创建 `process.md` 与 `params.json` → 不进步骤1。缺什么问什么。
+硬规则：确认包未齐，或缺必问项，或尚未创建 `process.md` 与 `params.json` → 不进步骤1。缺什么问什么。
 
 ## 步骤 1：探查与映射
 
@@ -168,8 +171,8 @@ Agent **只在这一步**写出宽表；分析 sheet 留给脚本，不要手建
 | 第 1 行 B 列起 | 样机名（规则见下）                         |
 | B2 起       | 该频率下该样机的幅度 dB                     |
 
-
 **频率列铁律：** 写入源数据的**全频率网格**（有测到的都写）；**禁止**按 `f_lo_hz`/`f_hi_hz` 裁剪。分析频段只约束步骤3 的计算；叠图要能看到带外曲线。
+
 
 样机名（按**每个源文件**判断）：
 

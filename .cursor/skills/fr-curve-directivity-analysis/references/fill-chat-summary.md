@@ -2,7 +2,7 @@
 
 ## 步骤0 intake：关注频点填法
 
-默认 `focus_freqs=[1000]`。主动问用户："默认关注 1000Hz 差值，要不要加其他频点？"
+默认 `focus_freqs=[1000]`；开局确认包中**必须用户确认**（可加频点或改 `[]`）。见 [`../../shared/references/intake-confirm.md`](../../shared/references/intake-confirm.md)。
 
 - 用户给 `[1000, 4000]` → `params.focus_freqs` 写 `[1000, 4000]`
 - 用户说"就 1000" → 写 `[1000]`
@@ -28,9 +28,10 @@
 
 - 报告 `report.pdf` 绝对路径
 - `figures/` 中差值叠图张数
-- 自检是否全部通过（含 I/J 走势项）
+- 自检是否全部通过（含 J/K 走势项）
 
 ## 禁止
 
 - 贴整张 sheet 表
 - 手写报告数字
+- 假装合格（`envelope=null` 时不得说「合格/不合格」）

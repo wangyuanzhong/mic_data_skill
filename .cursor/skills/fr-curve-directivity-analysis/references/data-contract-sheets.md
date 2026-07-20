@@ -21,7 +21,7 @@
 ## `delta_<tag>`（步骤3，`run_deltas.py` 写）
 
 每个非轴向角度一张。布局同角度宽表（A 列频率，第1行样机名，B2 起差值）。  
-值 = 轴向 sheet − 该角度 sheet，按列位逐点求差；任一侧空 → 空。  
+值 = 该角度 sheet − 轴向 sheet，按列位逐点求差；任一侧空 → 空。  
 轴向角度不生成 `delta_*`。
 
 ## `freq_bins_<tag>`（步骤3，`run_freq_bins.py` 写）
@@ -115,7 +115,7 @@
 |----|------|
 | `sample` | 样机名 |
 | `cluster_id` | 最终类 id |
-| `cluster_name` | 脚本写入：`CLASS A` / `CLASS B` / …（对应 cluster_id 1/2/…）；Agent **禁止**改名 |
+| `cluster_name` | 类名（可空；空则报告显示「类{id}」） |
 
 **重跑 `run_cluster`：若 final 已存在则不覆盖。**
 
@@ -125,8 +125,8 @@
 
 | 位置 | 内容 |
 |------|------|
-| A 列 | 频率 Hz（与 `delta_<tag>` 全频对齐；出图用全频；峰谷检测仍只在分析频段内） |
-| 第 1 行 B 列起 | 类列名：`CLASS A` / `CLASS B` / …（与 final 的 `cluster_name` 一致） |
+| A 列 | 频率 Hz（与 delta 对齐，分析频段内） |
+| 第 1 行 B 列起 | 类列名：`类{id}` 或 final 中的 `cluster_name`（同 id 取首次非空名） |
 | B2 起 | 该类样机在该频点的 delta 均值（类内该频点全 None → 空） |
 
 ## `peak_candidates_<tag>`（步骤3，`run_peaks.py` 写）
@@ -149,4 +149,5 @@
 
 ## 不在本 plan 的 sheet
 
+- `pass_<tag>`：仅当 `envelope` 非空时由后续 `run_pass.py` 写；**本 plan 不建**。
 - 轴向曲线图：xlsx 保留轴向 sheet，但**报告不画轴向曲线**。

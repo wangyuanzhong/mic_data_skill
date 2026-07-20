@@ -2,7 +2,7 @@
 name: fr-curve-directivity-analysis
 description: >-
   Use when analyzing multi-angle frequency-response (FR) measurements to
-  compute per-sample axial-minus-angle delta curves and same-angle batch
+  compute per-sample angle-vs-axial delta curves and same-angle batch
   consistency, and to produce a formal directivity report (HTML/PDF) from
   those results. Input curves are distinguished by filename per angle.
   Do not use for golden/auxiliary standard selection (that is
@@ -17,13 +17,17 @@ description: >-
 你是专业电声工程师；用户也是，但不懂编程。对外用大白话；电声行话可用；编程黑话翻译成人话。  
 **聊天少堆内容**：细节进文件；窗口只留短结论和必要提问。
 
-本 Skill **不读、不依赖金标**。输入是一批含轴向 + 多角度频响的测量数据（文件名区分角度），输出是每只样机各角度相对轴向的差值（轴向 − 角向）、同角度跨样机的一致性，以及本 Skill 内的正式报告。
+本 Skill **不读、不依赖金标**。输入是一批含轴向 + 多角度频响的测量数据（文件名区分角度），输出是每只样机各角度相对轴向的差值、同角度跨样机的一致性，以及本 Skill 内的正式报告。
 
-**与选标（A）同批时：** 本 Skill **不依赖**金标结果，但**禁止与 A 并行**。用户同时要选标+指向性时，必须等 A（及若需要的选标报告 B）全部跑完，才开始本 Skill 步骤0。禁止「等 A 确认奇异值的空档」去推进本 Skill。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
+**与选标（A）同批时：** 本 Skill **不依赖**金标结果，但**禁止与 A 并行**。可按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) 开局先收意向与 C 默认；**写 C 宽表 / 跑 C 脚本 / 进入步骤2 及以后**须等 A（及若需要的选标报告 B）全部结束。禁止「等 A 确认奇异值的空档」去建 C 产出目录或写 C 宽表/跑脚本。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
+
+- 已挂载本 Skill（或开局意向=要做）：**不要**再问「要不要做指向性」。
+- 开局确认包：公共项 + C 频段默认 250–20000 + `focus_freqs` 默认 `[1000]`，按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) **强制确认**。
+- 同批若还有 A/B：遵守包 README 串行；开局可先确认默认，但写宽表/跑脚本须等 A（及 B）结束。
 
 SOP：
 
-1. 步骤0：路径 / 产品 / 说明 / 幅度单位 / 曲线频段（默认 250–20000，不主动问）→ 建 `process.md` 骨架 + `params.json`
+1. 步骤0：路径 / 产品 / 说明 / 幅度单位 / 曲线频段（默认 250–20000，须确认）+ 关注频点（默认 `[1000]`，须确认）→ 建 `process.md` 骨架 + `params.json`
 2. 步骤1：探查映射 → 填「探查结论」
 3. 步骤1b：聊天贴「角度×文件名确认表」→ 用户确认
 4. 步骤2：写 `params.json` 角度字段 → 写 `process.xlsx` 一角度一 sheet → `process.md` 记核对
@@ -34,13 +38,14 @@ SOP：
 
 **铁律：**
 
-1. `process.xlsx`：仅步骤2写各角度宽表 sheet 可依赖 LLM；其后 sheet（`delta_*` / `freq_bins_*` / `consistency_*` / `cluster_*` / `class_mean_*` / `peak_candidates_*`）必须由脚本得到。**例外**：Agent/LLM 可改 `cluster_final_<tag>.cluster_id`（可选）与 `peak_candidates_<tag>.selected`（见 [`references/cluster-llm-rules.md`](references/cluster-llm-rules.md)）；`cluster_name` 与距离、k、类均值、峰谷频率/幅度/Q 等数值禁止手改（类名由脚本写 `CLASS A`/`B`/…）。
+1. `process.xlsx`：仅步骤2写各角度宽表 sheet 可依赖 LLM；其后 sheet（`delta_*` / `freq_bins_*` / `consistency_*` / `cluster_*` / `class_mean_*` / `peak_candidates_*`）必须由脚本得到。**例外**：Agent/LLM 可改 `cluster_final_<tag>`（类 id/类名）与 `peak_candidates_<tag>.selected`（见 [`references/cluster-llm-rules.md`](references/cluster-llm-rules.md)）；距离、k、类均值、峰谷频率/幅度/Q 等数值禁止手改。
 2. **传参真源是** `params.json`（模板 [references/params.template.json](references/params.template.json)，基于 [`../shared/references/params.base.template.json`](../shared/references/params.base.template.json)）。`process.md` 只作过程日志，不负责传参；禁止从 md 拼命令行。
 3. `process.md`：步骤0创建；步骤1/1b/2 人工填空；步骤3/4 分析章由脚本改写。禁止算完再手补分析章。
 4. **用户确认角度×文件名表之前：禁止写出角度宽表，禁止进步骤3。**
 5. 报告**不展示轴向曲线**；数字不读 `process.md`。
-6. 闸门：0 有骨架+params → 1 有探查结论 → 1b 确认表已确认 → 2 有 params+xlsx 核对 → 3 脚本+LLM 回写后 md 章已更新 → 4 报告已出 → 短结。
-7. **与选标（A）同批时禁止并行**：见 Overview；不得在 A 未全部完成前建本 Skill 产出目录或进入步骤1。
+6. `envelope` 为 `null` 时：不算合格、不建 `pass_*` sheet、报告不写合格结论。
+7. 闸门：0 有骨架+params → 1 有探查结论 → 1b 确认表已确认 → 2 有 params+xlsx 核对 → 3 脚本+LLM 回写后 md 章已更新 → 4 报告已出 → 短结。
+8. **与选标（A）同批时禁止并行**：见 Overview；写 C 宽表 / 跑 C 脚本须等 A（及 B）结束；禁止在等 A 确认空档建 C 产出目录或推进步骤2 及以后。
 
 **交付物：**
 
@@ -66,14 +71,14 @@ SOP：
 
 ### 先收信息
 
-公共项处理见 [`../shared/references/fill-00-skeleton.md`](../shared/references/fill-00-skeleton.md)。C 专有：
+公共项处理见 [`../shared/references/fill-00-skeleton.md`](../shared/references/fill-00-skeleton.md)。开局确认包见 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md)。C 专有：
 
 | 项 | 怎么处理 |
 |----|----------|
-| 曲线分析下限 Hz | **强制不许问**；默认 250；用户主动提才改 |
-| 曲线分析上限 Hz | **强制不许问**；默认 20000；用户主动提才改 |
+| 曲线分析下限 Hz | 默认 250；**必须用户确认**（可改） |
+| 曲线分析上限 Hz | 默认 20000；**必须用户确认**（可改） |
 | 命名 / 角度说明 | 用户主动给就记；没有 → 步骤1 探查后请其确认 |
-| 关注频点 | 默认 `[1000]`；主动问"默认关注 1000Hz 差值，要不要加其他频点？" → 写入 `params.focus_freqs` |
+| 关注频点 | 默认 `[1000]`；**必须用户确认**（可加频点或改 `[]`）→ 写入 `params.focus_freqs` |
 
 ### 写文件
 
@@ -83,7 +88,7 @@ SOP：
 必问项收齐后，在该产出目录：
 
 1. 按 [`references/fill-00-skeleton.md`](references/fill-00-skeleton.md) **创建** `process.md`
-2. 复制 [`references/params.template.json`](references/params.template.json) → `params.json`，填入本步已收齐字段（`product` / `note` / `data_root` / `output_dir` / `unit` / `f_lo_hz` / `f_hi_hz`）。`angles` / `axial_angle` / `sample_count` 暂留模板默认（待步骤2 填）
+2. 复制 [`references/params.template.json`](references/params.template.json) → `params.json`，填入本步已收齐字段（`product` / `note` / `data_root` / `output_dir` / `unit` / `f_lo_hz` / `f_hi_hz` / `focus_freqs`）。`angles` / `axial_angle` / `sample_count` 暂留模板默认（待步骤2 填）；`envelope` 保持 `null`
 
 硬规则：缺必问项，或尚未创建 `process.md` 与 `params.json` → 不进步骤1。缺什么问什么。
 
@@ -98,7 +103,7 @@ SOP：
 1. 高置信度：聊天不堆表；`process.md` 仍要有探查结论 + 映射摘要表。
 2. 中/低未确认前：不进入标准化/跑脚本。
 3. **「探查结论」未写入** `process.md` **之前，禁止创建** `process.xlsx`**。**
-4. 映射就绪 → 进入步骤1b。
+4. 映射就绪后：可区分角度（含轴向）≥ 2 → 进入步骤 1b；< 2 → 聊天软提示本批无离轴、指向性跳过（**不要再问**），不建/不继续 C 产出（若尚未建则不要建），本批若有 A/B 则继续它们。
 
 ## 步骤 1b：角度×文件名确认
 
@@ -129,6 +134,7 @@ SOP：
 - `angles`：有序角度标签列表（含轴向；顺序以确认表列头为准）
 - `axial_angle`：确认表里指定的轴向角度标签
 - `sample_count`：序号个数
+- `envelope`：保持 `null`（本 plan 不做包络合格）
 - `unit` / `f_lo_hz` / `f_hi_hz`：与步骤0一致
 
 再按 [`references/fill-02-standardize.md`](references/fill-02-standardize.md) 把「入参见 params.json」写入 `process.md`（仅日志，不抄命令行表）。
@@ -210,9 +216,9 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_cluster.py --par
 
 脚本对每个非轴向角度：读 `delta_<tag>`，写 `cluster_dist_<tag>` / `cluster_suggest_<tag>` / `cluster_meta_<tag>`；若无 `cluster_final_<tag>` 则从 suggest 复制。重跑 cluster **不覆盖**已有 final。L2 自检失败 → 删坏 sheet + exit 3。
 
-### 3.5 Agent/LLM 微调分类（可选）
+### 3.5 Agent/LLM 微调分类
 
-按 [`references/cluster-llm-rules.md`](references/cluster-llm-rules.md)：**默认可跳过**。若需合并/拆分类，只改 `cluster_final_<tag>.cluster_id`，并把 `cluster_name` 同步为脚本规则（`CLASS A`/`CLASS B`/…）；**禁止自创类名**。
+按 [`references/cluster-llm-rules.md`](references/cluster-llm-rules.md) **只改** `cluster_final_<tag>`（`cluster_id` / `cluster_name`）；禁止改 dist/suggest/meta 数值。允许命名、合并类、离群单独成类；不强制 askuser。若改动与距离矩阵矛盾 → 在 `process.md` 记理由。
 
 ### 3.6 类均值峰谷候选
 
@@ -237,7 +243,8 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_peaks.py --param
 1. 必须按 3.1 → … → 3.8；禁止连跑完再一次性手补 md。
 2. 命令行只带 `--params …`（3.5/3.7 为 LLM 回写 xlsx，不跑脚本）。
 3. 无对应 sheet，不得填假结论。
-4. 脚本 exit 2/3 → 向用户说明并询问是否重跑/改 params；禁止静默跳过。
+4. `envelope=null` 时，禁止写合格/不合格。
+5. 脚本 exit 2/3 → 向用户说明并询问是否重跑/改 params；禁止静默跳过。
 
 ## 步骤 4：正式报告
 
@@ -305,7 +312,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/compose_pdf.py --htm
 
 1. 必须先完成 4.1（两套出图脚本跑完，`figures/` 非空），再跑 4.3。
 2. 改排版：只改本 Skill 的 `scripts/templates/` 与/或组版脚本，然后从 4.3 起重跑。
-3. 报告不展示轴向曲线。
+3. 报告不展示轴向曲线；`envelope=null` 时不写合格结论。
 
 ## 步骤 5：改格式（仅用户要求时）
 
