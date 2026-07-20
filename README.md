@@ -50,6 +50,9 @@ pytest .cursor/skills/fr-curve-measurement-report/scripts/tests -q -m "not integ
 
 # 指向性侧
 pytest .cursor/skills/fr-curve-directivity-analysis/scripts/tests -q
+
+# 跨 Skill 重复脚本一致性
+pytest tests/ -q
 ```
 
 ## 文档
