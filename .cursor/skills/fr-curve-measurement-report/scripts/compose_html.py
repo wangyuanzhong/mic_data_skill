@@ -124,7 +124,7 @@ def compose_report_html(
     curves_notes_html = _as_note_html(curves_notes)
     conclusion_html = _as_note_html(conclusion_note) or "<p></p>"
 
-    tpl_dir = Path(__file__).resolve().parent / "templates"
+    tpl_dir = Path(__file__).resolve().parent.parent / "assets" / "templates"
     env = Environment(
         loader=FileSystemLoader(str(tpl_dir)),
         autoescape=select_autoescape(["html", "xml"]),

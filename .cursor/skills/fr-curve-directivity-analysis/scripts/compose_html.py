@@ -397,7 +397,7 @@ def compose_report_html(
     trend_html = build_trend_html(output_dir, params)
     conclusion_html = _as_note_html(conclusion_note) or "<p></p>"
 
-    tpl_dir = Path(__file__).resolve().parent / "templates"
+    tpl_dir = Path(__file__).resolve().parent.parent / "assets" / "templates"
     env = Environment(
         loader=FileSystemLoader(str(tpl_dir)),
         autoescape=select_autoescape(["html", "xml"]),

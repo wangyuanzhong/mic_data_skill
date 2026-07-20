@@ -316,15 +316,15 @@ python <本Skill根目录>/scripts/compose_pdf.py --html <产出目录>/report.h
 ### 硬规则
 
 1. 必须先完成 4.1（两套出图脚本跑完，`figures/` 非空），再跑 4.3。
-2. 改排版：只改本 Skill 的 `scripts/templates/` 与/或组版脚本，然后从 4.3 起重跑。
+2. 改排版：只改本 Skill 的 `assets/templates/` 与/或组版脚本，然后从 4.3 起重跑。
 3. 报告不展示轴向曲线；`envelope=null` 时不写合格结论。
 
 ## 步骤 5：改格式（仅用户要求时）
 
 只修改本 Skill 的：
 
-- `scripts/templates/report.css`
-- 和/或 `scripts/templates/report.html.j2`
+- `assets/templates/report.css`
+- 和/或 `assets/templates/report.html.j2`
 - 或组版相关脚本（`scripts/compose_html.py` / `scripts/compose_pdf.py`）
 
 然后从步骤4 的 4.3 起重跑。非用户点名，不改 `scripts/render_figures.py` 的出图业务逻辑。

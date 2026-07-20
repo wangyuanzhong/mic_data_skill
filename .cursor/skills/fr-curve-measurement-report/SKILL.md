@@ -29,7 +29,7 @@ license: Proprietary. See repository LICENSE for internal/private-use terms.
 3. **步骤2** 调用本 Skill 的 `scripts/render_figures.py` 出图
 4. **步骤3** 组版：准备白话时按需读 `report-outline` / 对应 `data-contract-*.md` → 跑 `scripts/compose_html.py` → 再跑 `scripts/compose_pdf.py`
 5. **步骤4** 短结；按 `references/report-outline.md` 的「自检」全表核对
-6. （仅用户要改排版时）改 `scripts/templates/` 下模板后重跑步骤3
+6. （仅用户要改排版时）改 `assets/templates/` 下模板后重跑步骤3
 
 ### Overview 铁律
 
@@ -185,7 +185,7 @@ python <本Skill根目录>/scripts/compose_pdf.py --html <产出目录>/report.h
 ### 本步硬规则
 
 - 必须先完成步骤2（产出目录 `figures/` 非空），再跑 3.2。  
-- 改排版：只改本 Skill 的 `scripts/templates/report.css` 与/或 `scripts/templates/report.html.j2`，然后从 3.2 重跑。  
+- 改排版：只改本 Skill 的 `assets/templates/report.css` 与/或 `assets/templates/report.html.j2`，然后从 3.2 重跑。  
 - **分页：** 介绍/灵敏度/结论尽量整节不跨页（模板 class `.section-keep`）；曲线节可换页（`.section-flow`）；图与图名同页不拆（`.figure`）。非用户明确要求，不得删掉这些约束。
 
 ---
@@ -212,8 +212,8 @@ python <本Skill根目录>/scripts/compose_pdf.py --html <产出目录>/report.h
 
 只修改本 Skill 的：
 
-- `scripts/templates/report.css`  
-- 和/或 `scripts/templates/report.html.j2`  
+- `assets/templates/report.css`  
+- 和/或 `assets/templates/report.html.j2`  
 - 或组版相关脚本（`scripts/compose_html.py` / `scripts/compose_pdf.py` 等）
 
 然后从步骤3 的 3.2 起重跑。非用户点名，不改 `scripts/render_figures.py` 的出图业务逻辑。
