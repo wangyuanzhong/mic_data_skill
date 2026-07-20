@@ -1,0 +1,71 @@
+{
+  "skill_name": "fr-curve-directivity-analysis",
+  "evals": [
+    {
+      "id": "c-explicit-angles",
+      "prompt": "这批数据有0度、90度、180度三个角度的频响文件，帮我算指向性",
+      "expected_output": "Agent 打开 fr-curve-directivity-analysis 的 SKILL.md，走开局确认包 + 探查 + 角度×文件名确认表，不跳过 1b 直接建宽表。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-paraphrase-delta",
+      "prompt": "我想看看离轴和轴向比起来差多少dB，帮我分析一下",
+      "expected_output": "触发指向性 Skill 的差值分析。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-paraphrase-consistency",
+      "prompt": "同一角度不同样机之间的一致性怎么样，帮我看一下批次稳定性",
+      "expected_output": "触发指向性 Skill 的一致性分析（run_consistency.py）。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-english-explicit",
+      "prompt": "Can you compute the off-axis vs on-axis delta curves for this batch of angle-tagged files and give me a directivity report?",
+      "expected_output": "触发指向性 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-casual-filename-angle",
+      "prompt": "这批喇叭测了好几个角度，文件名里带角度信息，帮我出个指向性PDF",
+      "expected_output": "触发指向性 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-peak-valley",
+      "prompt": "帮我看看90度那批离轴曲线里有没有明显的峰谷",
+      "expected_output": "触发指向性 Skill 的走势分类/峰谷候选（run_peaks.py）。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-focus-freq",
+      "prompt": "关注1000Hz这个频点，各角度差值分布怎么样",
+      "expected_output": "触发指向性 Skill 的频点分档（focus_freqs / run_freq_bins.py）。",
+      "should_trigger": true
+    },
+    {
+      "id": "c-nearmiss-golden",
+      "prompt": "帮我选一下这批数据里哪条曲线该当金标",
+      "expected_output": "应触发 fr-curve-golden-analysis（A），不是本 Skill；本 Skill 明确 Do-not-use 覆盖此场景。",
+      "should_trigger": false
+    },
+    {
+      "id": "c-nearmiss-report",
+      "prompt": "选标产出已经有了，出个正式报告",
+      "expected_output": "应触发 fr-curve-measurement-report（B），不是本 Skill。",
+      "should_trigger": false
+    },
+    {
+      "id": "c-nearmiss-ambiguous-angle",
+      "prompt": "这批数据不同角度的意思是不同批次生产的样机，不是离轴角度测量，帮我按批次整理一下",
+      "expected_output": "「角度」一词在此处不指离轴测量，是刻意设置的误导性近似关键词；不应仅因出现「角度」就触发本 Skill。",
+      "should_trigger": false
+    },
+    {
+      "id": "c-nearmiss-definition",
+      "prompt": "什么叫指向性?",
+      "expected_output": "纯概念问答，无实际分析任务，不应触发本 Skill。",
+      "should_trigger": false
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "skill_name": "fr-curve-measurement-report",
+  "evals": [
+    {
+      "id": "b-explicit-1",
+      "prompt": "选标已经做完了，产出目录在 /data/耳机A_20260101_120000，帮我出一份正式的PDF报告",
+      "expected_output": "Agent 打开 fr-curve-measurement-report 的 SKILL.md，先定位产出目录、核对 params.json/process.xlsx，再出图组版，不重跑选标。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-filenames-explicit",
+      "prompt": "这批数据的params.json和process.xlsx都有了，能不能生成report.pdf",
+      "expected_output": "触发报告 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-english-explicit",
+      "prompt": "Can you turn this analysis output folder into a formal measurement report with curve figures?",
+      "expected_output": "触发报告 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-casual-business",
+      "prompt": "老板要一份正式频响测试报告，数据已经分析过了，出个PDF",
+      "expected_output": "触发报告 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-paraphrase",
+      "prompt": "帮我把这批灵敏度和曲线图表整理成一份对外的报告",
+      "expected_output": "触发报告 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-envelope-feature",
+      "prompt": "报告里的图表能不能加个包络分档",
+      "expected_output": "触发报告 Skill（包络分档是该 Skill 的既有出图能力）。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-pagination-detail",
+      "prompt": "这个产出目录下的报告用A4排版，图和图名别拆到两页",
+      "expected_output": "触发报告 Skill 步骤5（改排版）。",
+      "should_trigger": true
+    },
+    {
+      "id": "b-nearmiss-golden",
+      "prompt": "帮我从头分析这批麦克风测试数据，选出金标",
+      "expected_output": "应触发 fr-curve-golden-analysis（A），不是本 Skill；本 Skill 明确 Do-not-use 覆盖此场景。",
+      "should_trigger": false
+    },
+    {
+      "id": "b-nearmiss-directivity-report",
+      "prompt": "这批多角度测试数据，帮我出指向性报告",
+      "expected_output": "应触发 fr-curve-directivity-analysis（C）内置的报告步骤，不是本 Skill。",
+      "should_trigger": false
+    },
+    {
+      "id": "b-nearmiss-generic-excel",
+      "prompt": "帮我美化一下这个Excel表格的格式",
+      "expected_output": "通用表格格式请求，无 params.json/process.xlsx/FR 报告语境，不应触发本 Skill。",
+      "should_trigger": false
+    },
+    {
+      "id": "b-nearmiss-generic-doc",
+      "prompt": "Word文档怎么转成PDF",
+      "expected_output": "通用文档转换请求，无 FR 分析语境，不应触发本 Skill。",
+      "should_trigger": false
+    }
+  ]
+}

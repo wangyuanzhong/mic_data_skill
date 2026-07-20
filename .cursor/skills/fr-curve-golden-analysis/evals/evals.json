@@ -1,0 +1,71 @@
+{
+  "skill_name": "fr-curve-golden-analysis",
+  "evals": [
+    {
+      "id": "a-explicit-1",
+      "prompt": "帮我分析一下这批麦克风频响测量数据，选出金标和辅标",
+      "expected_output": "Agent 打开 fr-curve-golden-analysis 的 SKILL.md，按步骤0 intake 收信息，不跳过探查/映射直接算结果。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-symptom-outlier",
+      "prompt": "这个文件夹里有20个样机的SPL曲线，帮我看看哪些是异常值该剔除",
+      "expected_output": "触发选标 Skill 的奇异值提名流程（步骤3.2），不手算剔除名单。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-sensitivity-binning",
+      "prompt": "我们有一批新测的耳机数据，想按1000Hz灵敏度分档看看",
+      "expected_output": "触发选标 Skill 的灵敏度分析（步骤3.1 run_sensitivity.py）。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-english-explicit",
+      "prompt": "Can you go through this folder of raw FR measurement files (XLS/CSV) and help me pick the golden and 2-3 auxiliary reference curves?",
+      "expected_output": "同上，英文提问同样应触发。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-casual-outlier",
+      "prompt": "这堆csv看起来有一条曲线特别歪，帮我判断一下是不是该拿掉",
+      "expected_output": "触发选标 Skill；不应凭肉眼直接建议剔除，而是走脚本提名+用户确认。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-golden-keyword",
+      "prompt": "分析下这批灵敏度数据，我想知道哪个样机适合当金标",
+      "expected_output": "触发选标 Skill。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-high-q-terminology",
+      "prompt": "这批数据里有个样机看起来Q很高，是个尖峰，要不要把它当异常值处理",
+      "expected_output": "触发选标 Skill 的高Q豁免逻辑（不强制剔除高Q样机）。",
+      "should_trigger": true
+    },
+    {
+      "id": "a-nearmiss-report",
+      "prompt": "帮我把这批已经选好金标的产出目录做成正式PDF报告",
+      "expected_output": "应触发 fr-curve-measurement-report（B），不是本 Skill；本 Skill 明确 Do-not-use 覆盖此场景。",
+      "should_trigger": false
+    },
+    {
+      "id": "a-nearmiss-directivity",
+      "prompt": "帮我算一下90度和0度之间的差值曲线",
+      "expected_output": "应触发 fr-curve-directivity-analysis（C），不是本 Skill。",
+      "should_trigger": false
+    },
+    {
+      "id": "a-nearmiss-generic-csv",
+      "prompt": "帮我写一个Python脚本读取这个CSV并画个图",
+      "expected_output": "通用绘图请求，无金标/灵敏度/异常值语境，不应触发本 Skill。",
+      "should_trigger": false
+    },
+    {
+      "id": "a-nearmiss-definition",
+      "prompt": "什么是频响曲线的Q值？",
+      "expected_output": "纯概念问答，无实际分析任务，不应触发本 Skill。",
+      "should_trigger": false
+    }
+  ]
+}

@@ -93,6 +93,10 @@ npx --yes skills-ref@0.1.5 validate .cursor/skills/fr-curve-directivity-analysis
 
 三条都应输出 `Valid skill: ...`。
 
+### 触发效果 eval（`evals/evals.json`）
+
+三个 Skill 各自目录下有 `evals/evals.json`（结构见 [agentskills.io evaluating-skills](https://agentskills.io/skill-creation/evaluating-skills)）：每条含 `prompt`、`expected_output`、`should_trigger`。用于回归 description 改动是否还能正确触发/正确排他；改 `description` 后应重新过一遍。真实跑法与一次代表性试跑结果见 [`docs/superpowers/specs/2026-07-20-skill-trigger-eval-pilot-results.md`](../../docs/superpowers/specs/2026-07-20-skill-trigger-eval-pilot-results.md)（含方法论的诚实局限说明）。
+
 ### 改脚本列/sheet 时的同步约定
 
 - 改 A 选标脚本若增删/改名 sheet 或列：只改对应那一份 `data-contract-*.md`（如改灵敏度列 → 改 `data-contract-sheets-sensitivity.md`），否则报告会抄错或漏表。
