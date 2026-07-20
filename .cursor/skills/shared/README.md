@@ -7,11 +7,12 @@
 
 | 引用方 | 用到 |
 |--------|------|
-| `../fr-curve-golden-analysis/` | intake 公共项、探查结论版式 |
-| `../fr-curve-directivity-analysis/` | 同上 + 角度×文件名确认表 |
+| `../fr-curve-golden-analysis/` | intake 公共项、探查结论版式、`intake-confirm.md` |
+| `../fr-curve-directivity-analysis/` | 同上 + 角度×文件名确认表、`intake-confirm.md` |
 
 ## 维护约定
 
+- 改 `intake-confirm.md` 须同步 A/C SKILL 步骤0。
 - 改本目录下任何文件 → 同步检查两个引用方 SOP 是否仍对得上。
 - **不要**在本目录加 `SKILL.md`。
 - 整包安装：不要只拷单个 Skill 却不带 `shared/`；Skill 间的相对路径会断。
