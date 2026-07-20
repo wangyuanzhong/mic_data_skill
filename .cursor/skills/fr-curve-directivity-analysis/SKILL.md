@@ -171,6 +171,9 @@ xlsx 一写完，按 [`references/fill-02-standardize.md`](references/fill-02-st
 
 ## 步骤 3：运行脚本
 
+令 **本 Skill 根目录** = 本 `SKILL.md` 所在文件夹（其下有 `scripts/`、`references/`）。  
+调用脚本时使用「本 Skill 根目录」下的路径，不要写「仓库根」（Skill 可能被单独拷走）。
+
 ### 前提（未齐则退回步骤2）
 
 1. `process.xlsx` 里已有与 `params.angles` 同名的各角度 sheet。
@@ -184,7 +187,7 @@ xlsx 一写完，按 [`references/fill-02-standardize.md`](references/fill-02-st
 跑
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/run_deltas.py --params <与分析根同级的产出目录>/params.json
+python <本Skill根目录>/scripts/run_deltas.py --params <与分析根同级的产出目录>/params.json
 ```
 
 脚本对每个非轴向角度，按列位对轴向求差，写出 `delta_<tag>` sheet。列数不一致 → 非零退出，不写半成品。
@@ -194,7 +197,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_deltas.py --para
 跑
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/run_freq_bins.py --params <产出目录>/params.json
+python <本Skill根目录>/scripts/run_freq_bins.py --params <产出目录>/params.json
 ```
 
 脚本读 `delta_<tag>` sheet，对 `params.focus_freqs` 每个频点找最近频率，按 1dB 一档统计各角度差值分布，写出 `freq_bins_<tag>`（明细）与 `freq_bins_summary_<tag>`（统计）两张 sheet/角度。跑后自检失败 → 删坏 sheet + exit 3。
@@ -206,7 +209,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_freq_bins.py --p
 跑
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/run_consistency.py --params <与分析根同级的产出目录>/params.json
+python <本Skill根目录>/scripts/run_consistency.py --params <与分析根同级的产出目录>/params.json
 ```
 
 脚本读 `delta_*` sheet，按同角度跨样机算逐频点 `std_db` / `width_db` 等，写出 `consistency_<tag>` 与 `consistency_summary`。
@@ -216,7 +219,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_consistency.py -
 跑
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/run_cluster.py --params <产出目录>/params.json
+python <本Skill根目录>/scripts/run_cluster.py --params <产出目录>/params.json
 ```
 
 脚本对每个非轴向角度：读 `delta_<tag>`，写 `cluster_dist_<tag>` / `cluster_suggest_<tag>` / `cluster_meta_<tag>`；若无 `cluster_final_<tag>` 则从 suggest 复制。重跑 cluster **不覆盖**已有 final。L2 自检失败 → 删坏 sheet + exit 3。
@@ -230,7 +233,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_cluster.py --par
 跑
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/run_peaks.py --params <产出目录>/params.json
+python <本Skill根目录>/scripts/run_peaks.py --params <产出目录>/params.json
 ```
 
 脚本读 `cluster_final_<tag>` + `delta_<tag>`，写 `class_mean_<tag>` + `peak_candidates_<tag>`（`selected` 初值全 `no`）。缺 final → exit 2。L2 自检失败 → exit 3。
@@ -260,7 +263,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/run_peaks.py --param
 先跑差值/一致性图：
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/render_figures.py --params <产出目录>/params.json
+python <本Skill根目录>/scripts/render_figures.py --params <产出目录>/params.json
 ```
 
 产出 `figures/` 下 PNG：每个非轴向角度一张「差值叠图_<tag>.png」；一张「一致性sigma.png」。**不生成轴向曲线图。**
@@ -268,7 +271,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/render_figures.py --
 再跑走势图：
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/render_trend_figures.py --params <产出目录>/params.json
+python <本Skill根目录>/scripts/render_trend_figures.py --params <产出目录>/params.json
 ```
 
 产出 `figures/` 下 PNG：每非轴向角度 `走势_类均值_<tag>.png`（标注 selected 峰/谷）；每类 `走势_类内叠图_<tag>_类<id>.png`。缺 `cluster_final` / `peak_candidates` → exit 2。
@@ -290,7 +293,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/render_trend_figures
 ### 4.3 组 HTML
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/compose_html.py --output-dir <产出目录> --intro-note "……" --deltas-note "……" --consistency-note "……" --trend-note "……" --conclusion-note "……"
+python <本Skill根目录>/scripts/compose_html.py --output-dir <产出目录> --intro-note "……" --deltas-note "……" --consistency-note "……" --trend-note "……" --conclusion-note "……"
 ```
 
 **Windows / 长文本可用 `--*-note-file` 代替 `--*-note`：** 每段都有对应的 `--intro-note-file` / `--deltas-note-file` / `--consistency-note-file` / `--trend-note-file` / `--conclusion-note-file`，把该段白话先写进一个 UTF-8 文本文件，传文件路径即可，避免把长文本或引号塞进 PowerShell 命令行。同一段若两者都传，文件优先。
@@ -301,7 +304,7 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/compose_html.py --ou
 ### 4.4 转 PDF
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/compose_pdf.py --html <产出目录>/report.html
+python <本Skill根目录>/scripts/compose_pdf.py --html <产出目录>/report.html
 ```
 
 首次若缺浏览器内核：`playwright install chromium`。
