@@ -12,6 +12,7 @@ compatibility: >-
   Requires Python 3.10+ with openpyxl, matplotlib, jinja2, numpy, scipy, and
   playwright (run "playwright install chromium" once before generating
   report.pdf).
+license: Proprietary. See repository LICENSE for internal/private-use terms.
 ---
 
 # 频响指向性分析

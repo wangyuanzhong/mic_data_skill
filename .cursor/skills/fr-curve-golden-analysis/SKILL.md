@@ -8,6 +8,7 @@ description: >-
 compatibility: >-
   Requires Python 3.10+ with openpyxl. Reads and writes an analysis output
   directory sibling to the measurement data folder.
+license: Proprietary. See repository LICENSE for internal/private-use terms.
 ---
 
 # 频响曲线金标分析
