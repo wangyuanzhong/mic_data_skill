@@ -31,3 +31,5 @@ output/
 
 # Local report section drafts (generated under analysis output dirs, not this repo)
 report_sections/
+
+.worktrees/
