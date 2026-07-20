@@ -21,9 +21,13 @@ description: >-
 
 **与选标（A）同批时：** 本 Skill **不依赖**金标结果，但**禁止与 A 并行**。用户同时要选标+指向性时，必须等 A（及若需要的选标报告 B）全部跑完，才开始本 Skill 步骤0。禁止「等 A 确认奇异值的空档」去推进本 Skill。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
 
+- 已挂载本 Skill（或开局意向=要做）：**不要**再问「要不要做指向性」。
+- 开局确认包：公共项 + C 频段默认 250–20000 + `focus_freqs` 默认 `[1000]`，按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) **强制确认**。
+- 同批若还有 A/B：遵守包 README 串行；开局可先确认默认，但写宽表/跑脚本须等 A（及 B）结束。
+
 SOP：
 
-1. 步骤0：路径 / 产品 / 说明 / 幅度单位 / 曲线频段（默认 250–20000，不主动问）→ 建 `process.md` 骨架 + `params.json`
+1. 步骤0：路径 / 产品 / 说明 / 幅度单位 / 曲线频段（默认 250–20000，须确认）+ 关注频点（默认 `[1000]`，须确认）→ 建 `process.md` 骨架 + `params.json`
 2. 步骤1：探查映射 → 填「探查结论」
 3. 步骤1b：聊天贴「角度×文件名确认表」→ 用户确认
 4. 步骤2：写 `params.json` 角度字段 → 写 `process.xlsx` 一角度一 sheet → `process.md` 记核对
@@ -67,14 +71,14 @@ SOP：
 
 ### 先收信息
 
-公共项处理见 [`../shared/references/fill-00-skeleton.md`](../shared/references/fill-00-skeleton.md)。C 专有：
+公共项处理见 [`../shared/references/fill-00-skeleton.md`](../shared/references/fill-00-skeleton.md)。开局确认包见 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md)。C 专有：
 
 | 项 | 怎么处理 |
 |----|----------|
-| 曲线分析下限 Hz | **强制不许问**；默认 250；用户主动提才改 |
-| 曲线分析上限 Hz | **强制不许问**；默认 20000；用户主动提才改 |
+| 曲线分析下限 Hz | 默认 250；**必须用户确认**（可改） |
+| 曲线分析上限 Hz | 默认 20000；**必须用户确认**（可改） |
 | 命名 / 角度说明 | 用户主动给就记；没有 → 步骤1 探查后请其确认 |
-| 关注频点 | 默认 `[1000]`；主动问"默认关注 1000Hz 差值，要不要加其他频点？" → 写入 `params.focus_freqs` |
+| 关注频点 | 默认 `[1000]`；**必须用户确认**（可加频点或改 `[]`）→ 写入 `params.focus_freqs` |
 
 ### 写文件
 
@@ -100,6 +104,9 @@ SOP：
 2. 中/低未确认前：不进入标准化/跑脚本。
 3. **「探查结论」未写入** `process.md` **之前，禁止创建** `process.xlsx`**。**
 4. 映射就绪 → 进入步骤1b。
+
+- 若可区分角度（含轴向）< 2：聊天软提示本批无离轴、指向性跳过；**不要再问**；不建/不继续 C 产出（若尚未建则不要建）。本批若有 A/B 则继续它们。
+- 若 ≥ 2：进入步骤 1b 角度×文件名确认表。
 
 ## 步骤 1b：角度×文件名确认
 
