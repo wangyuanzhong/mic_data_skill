@@ -34,7 +34,7 @@ def _prep(tmp_path: Path, *, axis_cols, angle_cols, focus_freqs):
 
 def test_basic_two_freqs(tmp_path):
     axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
-    angle_cols = [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0]]  # S01 +1, S02 +3 everywhere
+    angle_cols = [[0.0, 1.0, 2.0], [-2.0, -1.0, 0.0]]  # S01 delta=+1, S02 delta=+3
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000, 4000])
 
     rc = run_freq_bins_main(["--params", str(out / "params.json")])
@@ -61,7 +61,7 @@ def test_basic_two_freqs(tmp_path):
 def test_none_delta(tmp_path):
     # S02 has a blank cell at 1000Hz in the angle sheet -> delta None at that freq
     axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
-    angle_cols = [[2.0, 3.0, 4.0], [2.0, None, 6.0]]  # S02 blank at 1000Hz
+    angle_cols = [[0.0, 1.0, 2.0], [0.0, None, 0.0]]  # S01 delta=+1; S02 blank at 1000Hz
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
 
     rc = run_freq_bins_main(["--params", str(out / "params.json")])
@@ -163,7 +163,7 @@ def test_invalid_focus_freqs_exit2(tmp_path):
                 "unit": "dB", "f_lo_hz": 250, "f_hi_hz": 20000,
                 "process_xlsx": "process.xlsx", "process_md": "process.md",
                 "angles": ["axis", "90"], "axial_angle": "axis", "sample_count": 2,
-                "envelope": None, "focus_freqs": bv,
+                "focus_freqs": bv,
             }, ensure_ascii=False),
             encoding="utf-8",
         )
@@ -200,7 +200,7 @@ def test_missing_delta_sheet_exit2(tmp_path):
 def test_identical_deltas(tmp_path):
     # all deltas at 1000Hz are exactly +2.0 -> single bin "2~3"
     axis_cols = [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]
-    angle_cols = [[3.0, 4.0, 5.0], [3.0, 4.0, 5.0]]  # both +2.0
+    angle_cols = [[-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]]  # both delta = +2.0
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols, focus_freqs=[1000])
 
     rc = run_freq_bins_main(["--params", str(out / "params.json")])

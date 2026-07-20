@@ -28,8 +28,8 @@ def _prep_clustered(tmp_path: Path):
     # dense-ish freqs for a visible peak at 1000
     freqs = [100.0, 300.0, 1000.0, 3000.0, 8000.0]
     axis = [[0.0] * 5, [0.0] * 5]
-    # both samples: peak at 1000 (+5)
-    ang = [[0.0, 0.5, 5.0, 0.5, 0.0], [0.0, 0.5, 5.0, 0.5, 0.0]]
+    # both samples: off-axis dip → axial−angle peak +5 at 1000
+    ang = [[0.0, -0.5, -5.0, -0.5, 0.0], [0.0, -0.5, -5.0, -0.5, 0.0]]
     build_angle_workbook(
         out / "process.xlsx",
         angles=["axis", "90"],
@@ -120,3 +120,50 @@ def test_peaks_verification_fail_exit3(tmp_path, monkeypatch):
     wb = load_workbook(out / "process.xlsx")
     assert "class_mean_90" not in wb.sheetnames
     assert "peak_candidates_90" not in wb.sheetnames
+
+
+def test_class_mean_keeps_full_frequency_grid(tmp_path):
+    """class_mean must keep out-of-band freqs for overlay plots; peaks stay in-band."""
+    out = tmp_path
+    write_params(
+        out / "params.json",
+        output_dir=out,
+        angles=["axis", "90"],
+        axial_angle="axis",
+        sample_count=2,
+        f_lo_hz=250.0,
+        f_hi_hz=10000.0,
+        extra={
+            "cluster_k_max": 5,
+            "peak_prominence_db": 0.5,
+            "peak_min_octave": 0.1,
+            "peak_include_q": True,
+        },
+    )
+    # 100 Hz is below f_lo; 8000 within band
+    freqs = [100.0, 300.0, 1000.0, 3000.0, 8000.0]
+    axis = [[0.0] * 5, [0.0] * 5]
+    ang = [[0.0, -0.5, -5.0, -0.5, 0.0], [0.0, -0.5, -5.0, -0.5, 0.0]]
+    build_angle_workbook(
+        out / "process.xlsx",
+        angles=["axis", "90"],
+        samples=["S01", "S02"],
+        freqs=freqs,
+        values_by_angle={"axis": axis, "90": ang},
+    )
+    run_deltas_main(["--params", str(out / "params.json")])
+    run_cluster_main(["--params", str(out / "params.json")])
+    rc = run_peaks_main(["--params", str(out / "params.json")])
+    assert rc == 0
+
+    wb = load_workbook(out / "process.xlsx")
+    ws = wb["class_mean_90"]
+    mean_freqs = [float(ws.cell(r, 1).value) for r in range(2, ws.max_row + 1)]
+    assert mean_freqs[0] == 100.0
+    assert 100.0 in mean_freqs
+    assert mean_freqs == freqs
+
+    ws_p = wb["peak_candidates_90"]
+    for r in range(2, ws_p.max_row + 1):
+        f = float(ws_p.cell(r, 3).value)
+        assert 250.0 <= f <= 10000.0

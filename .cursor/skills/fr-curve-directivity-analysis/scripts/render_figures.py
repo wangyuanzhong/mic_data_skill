@@ -74,8 +74,8 @@ def _plot_delta_overlay(
         ax.plot(xs, ys, linewidth=1.1, label=name)
     setup_log_freq_axis(ax, REPORT_F_MIN_HZ, REPORT_F_MAX_HZ)
     draw_analysis_band(ax, f_lo, f_hi)
-    ax.set_ylabel("角向 − 轴向 (dB)")
-    ax.set_title(f"{angle} 相对轴向差值")
+    ax.set_ylabel("轴向 − 角向 (dB)")
+    ax.set_title(f"{angle} 相对轴向差值（轴向 − 角向）")
     if len(samples) <= 12:
         ax.legend(fontsize=7, loc="best")
     return _save_fig(fig, out_path)

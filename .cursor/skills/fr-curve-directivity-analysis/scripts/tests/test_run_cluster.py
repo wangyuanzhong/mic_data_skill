@@ -8,7 +8,14 @@ from openpyxl import load_workbook
 
 from conftest import build_angle_workbook, write_params
 from run_deltas import main as run_deltas_main
-from run_cluster import main as run_cluster_main
+from run_cluster import cluster_label, main as run_cluster_main
+
+
+def test_cluster_label_letters():
+    assert cluster_label(1) == "CLASS A"
+    assert cluster_label(2) == "CLASS B"
+    assert cluster_label(26) == "CLASS Z"
+    assert cluster_label(27) == "CLASS AA"
 
 
 def _prep(tmp_path: Path, *, axis_cols, angle_cols, extra=None):
@@ -54,6 +61,9 @@ def test_two_identical_samples_k1(tmp_path):
     ws_s = wb["cluster_suggest_90"]
     assert int(ws_s.cell(2, 2).value) == 1
     assert int(ws_s.cell(3, 2).value) == 1
+    ws_f = wb["cluster_final_90"]
+    assert ws_f.cell(2, 3).value == "CLASS A"
+    assert ws_f.cell(3, 3).value == "CLASS A"
 
     ws_m = wb["cluster_meta_90"]
     # header + rows for k; chosen_k == 1
@@ -63,10 +73,31 @@ def test_two_identical_samples_k1(tmp_path):
 
 
 def test_two_clear_groups_k2(tmp_path):
-    # S01 delta ~ +1 everywhere; S02 delta ~ +10 everywhere → 2 clusters
-    axis = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-    ang = [[1.0, 1.0, 1.0], [10.0, 10.0, 10.0]]
-    out = _prep(tmp_path, axis_cols=axis, angle_cols=ang)
+    # Two tight groups of 2 (not all-singletons at k=2): deltas ~+1 vs ~+10
+    axis = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+    ang = [
+        [-1.0, -1.0, -1.0],
+        [-1.0, -1.0, -1.0],
+        [-10.0, -10.0, -10.0],
+        [-10.0, -10.0, -10.0],
+    ]
+    out = tmp_path
+    write_params(
+        out / "params.json",
+        output_dir=out,
+        angles=["axis", "90"],
+        axial_angle="axis",
+        sample_count=4,
+        extra={"focus_freqs": [1000], "cluster_k_max": 5},
+    )
+    build_angle_workbook(
+        out / "process.xlsx",
+        angles=["axis", "90"],
+        samples=["S01", "S02", "S03", "S04"],
+        freqs=[100.0, 1000.0, 4000.0],
+        values_by_angle={"axis": axis, "90": ang},
+    )
+    run_deltas_main(["--params", str(out / "params.json")])
 
     rc = run_cluster_main(["--params", str(out / "params.json")])
     assert rc == 0
@@ -77,7 +108,7 @@ def test_two_clear_groups_k2(tmp_path):
     assert int(ws_m.cell(chosen[0], 1).value) == 2
 
     ws_s = wb["cluster_suggest_90"]
-    ids = {int(ws_s.cell(2, 2).value), int(ws_s.cell(3, 2).value)}
+    ids = {int(ws_s.cell(r, 2).value) for r in range(2, 6)}
     assert ids == {1, 2}
 
 
@@ -152,3 +183,22 @@ def test_cluster_verification_fail_exit3(tmp_path, monkeypatch):
     assert "cluster_dist_90" not in wb.sheetnames
     assert "cluster_suggest_90" not in wb.sheetnames
     assert "cluster_meta_90" not in wb.sheetnames
+
+
+def test_singleton_silhouette_is_zero():
+    """Singletons must not inflate mean silhouette (sklearn convention: s=0)."""
+    import numpy as np
+    from run_cluster import _silhouette_precomputed
+
+    # 3 samples: two identical, one far outlier → labels [1,1,2]
+    dist = np.array(
+        [
+            [0.0, 0.0, 10.0],
+            [0.0, 0.0, 10.0],
+            [10.0, 10.0, 0.0],
+        ]
+    )
+    labels = np.array([1, 1, 2])
+    # If singleton got s=1, mean would be (1+1+1)/3=1.0; correct mean is (1+1+0)/3
+    s = _silhouette_precomputed(dist, labels)
+    assert abs(s - (1.0 + 1.0 + 0.0) / 3.0) < 1e-9

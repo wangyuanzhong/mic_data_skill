@@ -9,12 +9,15 @@ def test_sigma_zero_when_identical():
     assert out["sigma_db"] == [0.0, 0.0, 0.0]
 
 
-def test_sigma_none_outside_band():
+def test_sigma_computed_outside_band():
+    """Out-of-band points still get σ (display full curve; band is for analysis notes)."""
     freqs = [50.0, 1000.0, 20000.0]
     amps = {"a": [0.0, 1.0, 0.0], "b": [0.0, -1.0, 0.0]}
     out = compute_sigma_curve(freqs, amps, 100.0, 15000.0)
-    assert out["sigma_db"][0] is None
-    assert out["sigma_db"][2] is None
+    assert out["sigma_db"][0] is not None
+    assert out["sigma_db"][2] is not None
+    assert out["sigma_db"][0] == 0.0
+    assert out["sigma_db"][2] == 0.0
     assert out["sigma_db"][1] > 0
 
 

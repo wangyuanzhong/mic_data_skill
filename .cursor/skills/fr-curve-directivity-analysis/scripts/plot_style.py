@@ -106,8 +106,8 @@ def setup_log_freq_axis(
 
 
 def draw_analysis_band(ax: Axes, f_lo: float, f_hi: float) -> None:
-    ax.axvline(f_lo, color="0.35", linestyle="--", linewidth=1.2, alpha=0.9, zorder=3)
-    ax.axvline(f_hi, color="0.35", linestyle="--", linewidth=1.2, alpha=0.9, zorder=3)
+    ax.axvline(f_lo, color="red", linestyle="--", linewidth=1.2, alpha=0.9, zorder=3)
+    ax.axvline(f_hi, color="red", linestyle="--", linewidth=1.2, alpha=0.9, zorder=3)
     for f in (f_lo, f_hi):
         ax.annotate(
             f"{format_hz(f)} Hz",
@@ -118,7 +118,7 @@ def draw_analysis_band(ax: Axes, f_lo: float, f_hi: float) -> None:
             ha="center",
             va="top",
             fontsize=8,
-            color="0.25",
+            color="red",
             fontweight="bold",
             clip_on=False,
         )

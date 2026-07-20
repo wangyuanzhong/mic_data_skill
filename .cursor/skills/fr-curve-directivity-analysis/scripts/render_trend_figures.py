@@ -36,6 +36,7 @@ from plot_style import (  # noqa: E402
     draw_analysis_band,
     setup_log_freq_axis,
 )
+from run_cluster import cluster_label  # noqa: E402
 from utf8_boot import ensure_utf8_stdio  # noqa: E402
 
 
@@ -89,7 +90,7 @@ def _read_cluster_final(
         if cid not in names and cname:
             names[cid] = cname
         elif cid not in names:
-            names[cid] = f"类{cid}" if isinstance(cid, int) else str(cid)
+            names[cid] = cluster_label(cid) if isinstance(cid, int) else str(cid)
     return samples, cluster_ids, names
 
 
@@ -145,7 +146,9 @@ def _plot_class_means(
     # selected peak/valley markers
     for row in selected:
         cid = _normalize_cid(row.get("cluster_id"))
-        label = cid_to_name.get(cid, f"类{cid}" if isinstance(cid, int) else str(cid))
+        label = cid_to_name.get(
+            cid, cluster_label(cid) if isinstance(cid, int) else str(cid)
+        )
         f = row.get("freq_hz")
         amp = row.get("amplitude_db")
         if f is None:
@@ -186,7 +189,7 @@ def _plot_class_means(
 
     setup_log_freq_axis(ax, REPORT_F_MIN_HZ, REPORT_F_MAX_HZ)
     draw_analysis_band(ax, f_lo, f_hi)
-    ax.set_ylabel("角向 − 轴向 (dB)")
+    ax.set_ylabel("轴向 − 角向 (dB)")
     ax.set_title(f"{angle} 类均值走势")
     if len(col_names) <= 12:
         ax.legend(fontsize=7, loc="best")
@@ -223,8 +226,8 @@ def _plot_class_overlay(
         )
     setup_log_freq_axis(ax, REPORT_F_MIN_HZ, REPORT_F_MAX_HZ)
     draw_analysis_band(ax, f_lo, f_hi)
-    ax.set_ylabel("角向 − 轴向 (dB)")
-    ax.set_title(f"{angle} 类{cid} 类内叠图")
+    ax.set_ylabel("轴向 − 角向 (dB)")
+    ax.set_title(f"{angle} {cluster_label(cid)} 类内叠图")
     if len(sample_names) <= 12:
         ax.legend(fontsize=7, loc="best")
     return _save_fig(fig, out_path)
@@ -287,7 +290,7 @@ def _render_angle(
             pairs = members[cid]
             s_names = [p[0] for p in pairs]
             s_cols = [p[1] for p in pairs]
-            label = name_by_cid.get(cid, f"类{cid}")
+            label = name_by_cid.get(cid, cluster_label(cid))
             mean_col = mean_by_name.get(label)
             out_ov = figures_dir / f"走势_类内叠图_{tag}_类{cid}.png"
             _plot_class_overlay(

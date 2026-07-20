@@ -18,6 +18,11 @@ def compute_sigma_curve(
     f_lo: float,
     f_hi: float,
 ) -> dict:
+    """Compute σ(f) for the full frequency grid.
+
+    f_lo/f_hi are kept in the return dict for notes / band markers; they do
+    **not** blank out-of-band σ values (plots show full curves).
+    """
     names = list(amps_by_sample.keys())
     if len(names) < 2:
         raise ValueError("参与一致性分析至少需要 2 条曲线")
@@ -27,10 +32,7 @@ def compute_sigma_curve(
             raise ValueError(f"曲线长度不一致: {name}")
 
     sigma_db: list[float | None] = []
-    for j, f in enumerate(freqs):
-        if f < f_lo or f > f_hi:
-            sigma_db.append(None)
-            continue
+    for j, _f in enumerate(freqs):
         vals = [amps_by_sample[n][j] for n in names]
         mean = sum(vals) / len(vals)
         devs = [v - mean for v in vals]

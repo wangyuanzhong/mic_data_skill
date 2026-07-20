@@ -100,10 +100,12 @@ def _silhouette_precomputed(dist: np.ndarray, labels: np.ndarray) -> float:
     for i in range(n):
         same = labels == labels[i]
         n_same = int(np.sum(same)) - 1  # exclude self
+        # sklearn / Rousseeuw convention: singleton silhouette is 0 so it
+        # does not inflate mean silhouette toward higher k.
         if n_same <= 0:
-            a = 0.0  # singleton: no intra-cluster peers
-        else:
-            a = float(np.mean(dist[i, same & (np.arange(n) != i)]))
+            scores.append(0.0)
+            continue
+        a = float(np.mean(dist[i, same & (np.arange(n) != i)]))
         b = float("inf")
         for lab in unique:
             if lab == labels[i]:
@@ -185,6 +187,20 @@ def _write_meta(
         ws.append([k, sil, "yes" if k == chosen_k else "no"])
 
 
+def cluster_label(cid: int | str) -> str:
+    """Stable display name: cluster_id 1→CLASS A, 2→CLASS B, … (26→Z, 27→AA)."""
+    if not isinstance(cid, int):
+        return str(cid)
+    if cid < 1:
+        return f"CLASS {cid}"
+    n = cid
+    letters: list[str] = []
+    while n > 0:
+        n, rem = divmod(n - 1, 26)
+        letters.append(chr(65 + rem))
+    return "CLASS " + "".join(reversed(letters))
+
+
 def _write_final(
     ws: Worksheet,
     samples: list[str],
@@ -193,7 +209,7 @@ def _write_final(
     ws.append(["sample", "cluster_id", "cluster_name"])
     for name, cid in zip(samples, cluster_ids):
         if isinstance(cid, int):
-            cname = f"类{cid}"
+            cname = cluster_label(cid)
         else:
             cname = ""
         ws.append([name, cid, cname])

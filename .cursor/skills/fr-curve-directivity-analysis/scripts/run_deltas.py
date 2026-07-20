@@ -2,7 +2,7 @@
 """
 run_deltas.py — write delta_<tag> sheet per non-axial angle.
 
-For each non-axial angle sheet, subtract the axial sheet column-by-column
+For each non-axial angle sheet, compute axial − angle column-by-column
 (same sample order, same frequency grid) and write the result to a new
 sheet named `delta_<normalize_angle_tag(angle)>`.
 
@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as e:
             print(f"alignment error for {angle!r}: {e}", file=sys.stderr)
             return 2
-        delta_cols = subtract_columns(a_cols, axial_cols)
+        delta_cols = subtract_columns(axial_cols, a_cols)
         tag = normalize_angle_tag(angle)
         sheet_name = f"delta_{tag}"
         ws = _replace_sheet(wb, sheet_name)

@@ -65,7 +65,6 @@ def write_params(
         "angles": angles,
         "axial_angle": axial_angle,
         "sample_count": sample_count,
-        "envelope": None,
     }
     if extra:
         data.update(extra)

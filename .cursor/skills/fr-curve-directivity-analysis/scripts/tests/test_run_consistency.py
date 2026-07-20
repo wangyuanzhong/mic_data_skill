@@ -59,9 +59,9 @@ def _prep(tmp_path: Path, *, axis_cols, angle_cols):
 
 
 def test_consistency_zero_when_samples_agree(tmp_path):
-    # both samples have identical delta (axis+1 everywhere) -> std=0, width=0
+    # both samples have identical delta (axis − 1 everywhere) -> std=0, width=0
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [3.0, 5.0]]  # each sample = axis + 1.0
+    angle_cols = [[0.0, 2.0], [1.0, 3.0]]  # each sample = axis − 1.0
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols)
 
     rc = run_consistency_main(["--params", str(out / "params.json")])
@@ -81,7 +81,7 @@ def test_consistency_zero_when_samples_agree(tmp_path):
 def test_consistency_nonzero_when_samples_diverge(tmp_path):
     # sample 1 delta = +1, sample 2 delta = +3 -> std>0, width=2
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [5.0, 7.0]]  # S01 +1, S02 +3
+    angle_cols = [[0.0, 2.0], [-1.0, 1.0]]  # S01 axis−1, S02 axis−3
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols)
 
     run_consistency_main(["--params", str(out / "params.json")])
@@ -98,7 +98,7 @@ def test_consistency_nonzero_when_samples_diverge(tmp_path):
 
 def test_consistency_summary_exists(tmp_path):
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [3.0, 5.0]]
+    angle_cols = [[0.0, 2.0], [1.0, 3.0]]
     out = _prep(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols)
 
     run_consistency_main(["--params", str(out / "params.json")])
@@ -132,7 +132,7 @@ def test_consistency_in_band_flag(tmp_path):
         freqs=[100.0, 200.0],
         values_by_angle={
             "axis": [[1.0, 3.0], [2.0, 4.0]],
-            "90": [[2.0, 4.0], [3.0, 5.0]],
+            "90": [[0.0, 2.0], [1.0, 3.0]],
         },
     )
     run_deltas_main(["--params", str(out / "params.json")])

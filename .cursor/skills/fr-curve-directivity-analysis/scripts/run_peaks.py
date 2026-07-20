@@ -23,6 +23,7 @@ from scipy.signal import find_peaks, peak_widths
 
 from angle_sheets import normalize_angle_tag, read_angle_sheet
 from params_io import load_params, resolve_under_output
+from run_cluster import cluster_label
 from utf8_boot import ensure_utf8_stdio
 
 _SELECTED_MATCH_REL = 0.005
@@ -311,8 +312,10 @@ def _write_peak_candidates(
 def _verify_peak_sheets(wb, tag: str, f_lo: float, f_hi: float) -> None:
     """Raise ValueError on L2 check failure.
 
-    Checks: class_mean columns ↔ final clustered classes; candidate/mean
+    Checks: class_mean columns ↔ final clustered classes; peak candidate
     freqs in [f_lo, f_hi]; selected ∈ {yes, no}.
+    class_mean may span the full delta frequency grid (display); only
+    peak_candidates are required to stay in-band.
     """
     mean_name = f"class_mean_{tag}"
     cand_name = f"peak_candidates_{tag}"
@@ -326,7 +329,8 @@ def _verify_peak_sheets(wb, tag: str, f_lo: float, f_hi: float) -> None:
     final_cids = {cid for cid in final_ids if cid != "unclustered"}
     expected_names = sorted(
         {
-            name_by_cid.get(cid, f"类{cid}" if isinstance(cid, int) else str(cid))
+            name_by_cid.get(cid)
+            or (cluster_label(cid) if isinstance(cid, int) else str(cid))
             for cid in final_cids
         }
     )
@@ -341,14 +345,6 @@ def _verify_peak_sheets(wb, tag: str, f_lo: float, f_hi: float) -> None:
         raise ValueError(
             f"{mean_name} cols {mean_cols!r} != final classes {expected_names!r}"
         )
-
-    for r in range(2, ws_m.max_row + 1):
-        fv = ws_m.cell(r, 1).value
-        if fv is None:
-            continue
-        f = float(fv)
-        if not (f_lo <= f <= f_hi):
-            raise ValueError(f"{mean_name} freq {f} out of band [{f_lo},{f_hi}]")
 
     ws_c = wb[cand_name]
     for r in range(2, ws_c.max_row + 1):
@@ -387,7 +383,8 @@ def _peaks_for_angle(
     final_samples, final_ids, name_by_cid = _read_cluster_final(wb[final_name])
 
     sample_index = {s: i for i, s in enumerate(samples)}
-    members_by_cid: dict[int | str, list[list[float | None]]] = {}
+    members_full: dict[int | str, list[list[float | None]]] = {}
+    members_band: dict[int | str, list[list[float | None]]] = {}
     for sname, cid in zip(final_samples, final_ids):
         if cid == "unclustered":
             continue
@@ -397,7 +394,9 @@ def _peaks_for_angle(
                 file=sys.stderr,
             )
             return 2
-        members_by_cid.setdefault(cid, []).append(band_cols[sample_index[sname]])
+        si = sample_index[sname]
+        members_full.setdefault(cid, []).append(cols[si])
+        members_band.setdefault(cid, []).append(band_cols[si])
 
     # Stable order: numeric ids ascending, then other keys
     def _cid_sort_key(cid: int | str):
@@ -405,13 +404,17 @@ def _peaks_for_angle(
             return (0, cid, "")
         return (1, 0, str(cid))
 
-    ordered_cids = sorted(members_by_cid.keys(), key=_cid_sort_key)
-    col_names = [name_by_cid.get(cid, f"类{cid}" if isinstance(cid, int) else str(cid))
-                 for cid in ordered_cids]
-    means = [_class_mean(members_by_cid[cid]) for cid in ordered_cids]
+    ordered_cids = sorted(members_full.keys(), key=_cid_sort_key)
+    col_names = [
+        name_by_cid.get(cid)
+        or (cluster_label(cid) if isinstance(cid, int) else str(cid))
+        for cid in ordered_cids
+    ]
+    means_full = [_class_mean(members_full[cid]) for cid in ordered_cids]
+    means_band = [_class_mean(members_band[cid]) for cid in ordered_cids]
 
     candidate_rows: list[tuple] = []
-    for cid, mean in zip(ordered_cids, means):
+    for cid, mean in zip(ordered_cids, means_band):
         for kind in ("peak", "valley"):
             extrema = _find_extrema(
                 mean,
@@ -433,7 +436,8 @@ def _peaks_for_angle(
         old_selected = _read_selected_yes(wb[cand_name])
     candidate_rows = _merge_selected(candidate_rows, old_selected)
 
-    _write_class_mean(_replace_sheet(wb, mean_name), band_freqs, col_names, means)
+    # Full-grid class means for plots; peak search stays in-band above.
+    _write_class_mean(_replace_sheet(wb, mean_name), freqs, col_names, means_full)
     _write_peak_candidates(_replace_sheet(wb, cand_name), candidate_rows)
 
     try:

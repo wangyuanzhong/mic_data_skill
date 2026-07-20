@@ -56,7 +56,7 @@ def _read_sheet(ws):
 
 def test_run_deltas_writes_delta_sheet_with_constant_offset(tmp_path):
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [3.0, 5.0]]  # axis + 1.0 everywhere
+    angle_cols = [[0.0, 2.0], [1.0, 3.0]]  # axis − 1.0 everywhere → delta +1
     out = _make_batch(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols)
 
     rc = run_deltas_main(["--params", str(out / "params.json")])
@@ -76,7 +76,7 @@ def test_run_deltas_writes_delta_sheet_with_constant_offset(tmp_path):
 
 def test_run_deltas_skips_axial_sheet(tmp_path):
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [3.0, 5.0]]
+    angle_cols = [[0.0, 2.0], [1.0, 3.0]]
     out = _make_batch(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols)
 
     run_deltas_main(["--params", str(out / "params.json")])
@@ -124,7 +124,7 @@ def test_run_deltas_exits_when_column_count_mismatch(tmp_path):
 
 def test_run_deltas_preserves_existing_angle_sheets(tmp_path):
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [3.0, 5.0]]
+    angle_cols = [[0.0, 2.0], [1.0, 3.0]]
     out = _make_batch(tmp_path, axis_cols=axis_cols, angle_cols=angle_cols)
 
     run_deltas_main(["--params", str(out / "params.json")])
@@ -140,7 +140,7 @@ def test_run_deltas_looks_up_sheets_by_normalized_tag(tmp_path):
     samples = ["S01", "S02"]
     freqs = [100.0, 200.0]
     axis_cols = [[1.0, 3.0], [2.0, 4.0]]
-    angle_cols = [[2.0, 4.0], [3.0, 5.0]]
+    angle_cols = [[0.0, 2.0], [1.0, 3.0]]  # axis − 1.0 → delta +1
     write_params(
         out / "params.json",
         output_dir=out,
