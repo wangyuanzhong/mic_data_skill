@@ -19,7 +19,7 @@ description: >-
 
 本 Skill **不读、不依赖金标**。输入是一批含轴向 + 多角度频响的测量数据（文件名区分角度），输出是每只样机各角度相对轴向的差值、同角度跨样机的一致性，以及本 Skill 内的正式报告。
 
-**与选标（A）同批时：** 本 Skill **不依赖**金标结果，但**禁止与 A 并行**。用户同时要选标+指向性时，必须等 A（及若需要的选标报告 B）全部跑完，才开始本 Skill 步骤0。禁止「等 A 确认奇异值的空档」去推进本 Skill。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
+**与选标（A）同批时：** 本 Skill **不依赖**金标结果，但**禁止与 A 并行**。可按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) 开局先收意向与 C 默认；**写 C 宽表 / 跑 C 脚本 / 进入步骤2 及以后**须等 A（及若需要的选标报告 B）全部结束。禁止「等 A 确认奇异值的空档」去建 C 产出目录或写 C 宽表/跑脚本。详见包 [`../README.md`](../README.md)「同批多 Skill 串行铁律」。
 
 - 已挂载本 Skill（或开局意向=要做）：**不要**再问「要不要做指向性」。
 - 开局确认包：公共项 + C 频段默认 250–20000 + `focus_freqs` 默认 `[1000]`，按 [`../shared/references/intake-confirm.md`](../shared/references/intake-confirm.md) **强制确认**。
@@ -45,7 +45,7 @@ SOP：
 5. 报告**不展示轴向曲线**；数字不读 `process.md`。
 6. `envelope` 为 `null` 时：不算合格、不建 `pass_*` sheet、报告不写合格结论。
 7. 闸门：0 有骨架+params → 1 有探查结论 → 1b 确认表已确认 → 2 有 params+xlsx 核对 → 3 脚本+LLM 回写后 md 章已更新 → 4 报告已出 → 短结。
-8. **与选标（A）同批时禁止并行**：见 Overview；不得在 A 未全部完成前建本 Skill 产出目录或进入步骤1。
+8. **与选标（A）同批时禁止并行**：见 Overview；写 C 宽表 / 跑 C 脚本须等 A（及 B）结束；禁止在等 A 确认空档建 C 产出目录或推进步骤2 及以后。
 
 **交付物：**
 
@@ -88,7 +88,7 @@ SOP：
 必问项收齐后，在该产出目录：
 
 1. 按 [`references/fill-00-skeleton.md`](references/fill-00-skeleton.md) **创建** `process.md`
-2. 复制 [`references/params.template.json`](references/params.template.json) → `params.json`，填入本步已收齐字段（`product` / `note` / `data_root` / `output_dir` / `unit` / `f_lo_hz` / `f_hi_hz`）。`angles` / `axial_angle` / `sample_count` 暂留模板默认（待步骤2 填）；`envelope` 保持 `null`
+2. 复制 [`references/params.template.json`](references/params.template.json) → `params.json`，填入本步已收齐字段（`product` / `note` / `data_root` / `output_dir` / `unit` / `f_lo_hz` / `f_hi_hz` / `focus_freqs`）。`angles` / `axial_angle` / `sample_count` 暂留模板默认（待步骤2 填）；`envelope` 保持 `null`
 
 硬规则：缺必问项，或尚未创建 `process.md` 与 `params.json` → 不进步骤1。缺什么问什么。
 
@@ -103,10 +103,7 @@ SOP：
 1. 高置信度：聊天不堆表；`process.md` 仍要有探查结论 + 映射摘要表。
 2. 中/低未确认前：不进入标准化/跑脚本。
 3. **「探查结论」未写入** `process.md` **之前，禁止创建** `process.xlsx`**。**
-4. 映射就绪 → 进入步骤1b。
-
-- 若可区分角度（含轴向）< 2：聊天软提示本批无离轴、指向性跳过；**不要再问**；不建/不继续 C 产出（若尚未建则不要建）。本批若有 A/B 则继续它们。
-- 若 ≥ 2：进入步骤 1b 角度×文件名确认表。
+4. 映射就绪后：可区分角度（含轴向）≥ 2 → 进入步骤 1b；< 2 → 聊天软提示本批无离轴、指向性跳过（**不要再问**），不建/不继续 C 产出（若尚未建则不要建），本批若有 A/B 则继续它们。
 
 ## 步骤 1b：角度×文件名确认
 
