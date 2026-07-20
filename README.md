@@ -17,7 +17,7 @@ Cursor Agent Skills：麦克风 / 音箱等电声产品的**频响（FR）曲线
 ## 环境要求
 
 - Python 3.10+（建议 3.12）
-- Windows / macOS / Linux 均可；Windows 上组版报告请用 Skill 规定的 `--*-file` 方式，避免把 HTML 塞进 PowerShell 命令行
+- Windows / macOS / Linux 均可；Windows 上组版报告（`fr-curve-measurement-report` 与 `fr-curve-directivity-analysis` 均支持）请用 `--*-note-file` 方式传长文本，避免把引号或长字符串塞进 PowerShell 命令行
 
 ## 安装依赖
 

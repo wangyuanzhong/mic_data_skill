@@ -22,6 +22,13 @@ from params_io import resolve_under_output
 from utf8_boot import ensure_utf8_stdio, read_text, write_text
 
 
+def load_section_html(*, inline: str, file_path: str | Path | None) -> str:
+    """Prefer file contents when file_path is set; else use inline string."""
+    if file_path:
+        return read_text(file_path)
+    return inline
+
+
 def _as_note_html(text: str) -> str:
     if not text or not text.strip():
         return ""
@@ -428,19 +435,28 @@ def main() -> None:
     )
     p.add_argument("--output-dir", required=True)
     p.add_argument("--intro-note", default="")
+    p.add_argument("--intro-note-file", default=None)
     p.add_argument("--deltas-note", default="")
+    p.add_argument("--deltas-note-file", default=None)
     p.add_argument("--consistency-note", default="")
+    p.add_argument("--consistency-note-file", default=None)
     p.add_argument("--trend-note", default="")
+    p.add_argument("--trend-note-file", default=None)
     p.add_argument("--conclusion-note", default="")
+    p.add_argument("--conclusion-note-file", default=None)
     args = p.parse_args()
 
     path = compose_report_html(
         Path(args.output_dir),
-        intro_note=args.intro_note,
-        deltas_note=args.deltas_note,
-        consistency_note=args.consistency_note,
-        trend_note=args.trend_note,
-        conclusion_note=args.conclusion_note,
+        intro_note=load_section_html(inline=args.intro_note, file_path=args.intro_note_file),
+        deltas_note=load_section_html(inline=args.deltas_note, file_path=args.deltas_note_file),
+        consistency_note=load_section_html(
+            inline=args.consistency_note, file_path=args.consistency_note_file
+        ),
+        trend_note=load_section_html(inline=args.trend_note, file_path=args.trend_note_file),
+        conclusion_note=load_section_html(
+            inline=args.conclusion_note, file_path=args.conclusion_note_file
+        ),
     )
     print(f"OK wrote {path}")
 

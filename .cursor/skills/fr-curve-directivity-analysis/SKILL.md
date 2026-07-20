@@ -285,13 +285,10 @@ python .cursor/skills/fr-curve-directivity-analysis/scripts/render_trend_figures
 ### 4.3 组 HTML
 
 ```text
-python .cursor/skills/fr-curve-directivity-analysis/scripts/compose_html.py --output-dir <产出目录> ^
-  --intro-note "……" ^
-  --deltas-note "……" ^
-  --consistency-note "……" ^
-  --trend-note "……" ^
-  --conclusion-note "……"
+python .cursor/skills/fr-curve-directivity-analysis/scripts/compose_html.py --output-dir <产出目录> --intro-note "……" --deltas-note "……" --consistency-note "……" --trend-note "……" --conclusion-note "……"
 ```
+
+**Windows / 长文本可用 `--*-note-file` 代替 `--*-note`：** 每段都有对应的 `--intro-note-file` / `--deltas-note-file` / `--consistency-note-file` / `--trend-note-file` / `--conclusion-note-file`，把该段白话先写进一个 UTF-8 文本文件，传文件路径即可，避免把长文本或引号塞进 PowerShell 命令行。同一段若两者都传，文件优先。
 
 脚本：把五段 note 写入 `report_sections/`、从 sheet 生成表（含走势分析节）、插图、写出 `report.html`。  
 **禁止**手写 `report.html` 或手建 `report_sections/`。
