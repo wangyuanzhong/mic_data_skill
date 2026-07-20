@@ -1,0 +1,31 @@
+name: tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Golden-analysis skill tests (A)
+        run: pytest .cursor/skills/fr-curve-golden-analysis/scripts/tests -q
+
+      - name: Measurement-report skill tests (B, excludes playwright integration)
+        run: pytest .cursor/skills/fr-curve-measurement-report/scripts/tests -q -m "not integration"
+
+      - name: Directivity-analysis skill tests (C)
+        run: pytest .cursor/skills/fr-curve-directivity-analysis/scripts/tests -q
+
+      - name: Cross-skill script parity tests
+        run: pytest tests/ -q
