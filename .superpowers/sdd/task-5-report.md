@@ -27,7 +27,7 @@
 
 **Status:** Done
 
-**Commit:** (pending) — `docs(C): reconcile soft-skip gate and serial intake wording`
+**Commit:** `07495cb` — `docs(C): reconcile soft-skip gate and serial intake wording`
 
 **What changed (`SKILL.md`):**
 1. **§1.3 rule 4** — Reworded: mapping ready branches on distinguishable angles (incl. axial) ≥ 2 → step 1b; < 2 → soft-skip (no second ask, no C output). Removed unconditional「映射就绪 → 进入步骤1b」.
